@@ -1,0 +1,31 @@
+{
+  "name": "qingdan",
+  "productName": "轻单",
+  "version": "1.0.0",
+  "description": "A quiet floating to-do list for Windows, with color-coded deadlines and persistent reminders. / 轻单：Windows 悬浮待办与 DDL 提醒。",
+  "main": "src/main.js",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/core.test.js",
+    "test:ui": "node tests/electron.test.js",
+    "package:win": "python scripts/package_windows.py"
+  },
+  "devDependencies": {
+    "electron": "44.4.5",
+    "playwright": "1.62.1",
+    "resedit": "3.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KennyMcSimpson/qingdan.git"
+  },
+  "homepage": "https://github.com/KennyMcSimpson/qingdan",
+  "bugs": {
+    "url": "https://github.com/KennyMcSimpson/qingdan/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

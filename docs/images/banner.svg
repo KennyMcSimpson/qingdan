@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="轻单 Qingdan — Keep the important things within sight">
+<rect width="1280" height="320" fill="#f8f7f2"/>
+<path d="M920 302V70a124 124 0 0 1 248 0v232" fill="#eef0e6"/>
+<path d="M1044 0v302M920 130h248M886 302h315" stroke="#d4ddca" stroke-width="2"/>
+<circle cx="1104" cy="65" r="23" fill="#e4d7b2"/>
+<g transform="translate(67 56)"><rect width="62" height="62" rx="19" fill="#648264"/><path d="m16 32 10 10 21-23" fill="none" stroke="#f8f7f2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M36 13c7-3 13-1 13-1s-1 8-8 10c-4 1-6-1-6-1s-1-5 1-8Z" fill="#c2d1ad"/></g>
+<text x="150" y="100" fill="#344333" font-size="47" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-weight="650">轻单 <tspan fill="#648264" font-size="40" font-weight="400">Qingdan</tspan></text>
+<text x="69" y="181" fill="#344333" font-size="33" font-family="Segoe UI,Arial,sans-serif" font-weight="500">Keep the important things within sight.</text>
+<text x="71" y="222" fill="#7a8872" font-size="23" font-family="Microsoft YaHei,sans-serif" letter-spacing="2">把重要的事留在桌边。</text>
+<text x="72" y="278" fill="#8d9885" font-size="13" font-family="Segoe UI,Arial,sans-serif" letter-spacing="2">FLOATING TASKS / COLOR-CODED DEADLINES / OFFLINE</text>
+<path d="M999 247h81l-10 56h-61Z" fill="#cbd6bf"/><path d="M1041 249c-5-40 1-70 24-104" fill="none" stroke="#7b9673" stroke-width="4" stroke-linecap="round"/><path d="M1043 219c-29 2-49-15-51-35 30-3 53 12 51 35Z" fill="#8da584"/><path d="M1050 194c0-26 24-44 52-39-3 29-23 47-52 39Z" fill="#a5b795"/><path d="M1063 165c-17-15-20-32-10-47 24 13 27 31 10 47Z" fill="#b6c5a6"/>
+</svg>
