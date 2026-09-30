@@ -1,0 +1,82 @@
+name: Desktop checks and Windows package
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm test
+      - name: Check actual Electron interactions on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:ui
+      - name: Check actual Electron interactions on Windows
+        if: runner.os == 'Windows'
+        run: npm run test:ui
+      - name: Retain screenshots and integration report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-qa-${{ runner.os }}
+          path: qa/
+          retention-days: 14
+      - name: Download checksum-verified Windows runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force downloads | Out-Null
+          $runtimeVersion = node -p "require('./package.json').devDependencies.electron"
+          $base = "https://github.com/electron/electron/releases/download/v$runtimeVersion"
+          Invoke-WebRequest "$base/electron-v$runtimeVersion-win32-x64.zip" -OutFile downloads/electron-win32-x64.zip
+          Invoke-WebRequest "$base/SHASUMS256.txt" -OutFile downloads/SHASUMS256.txt
+      - name: Build branded portable application
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip install Pillow
+          python scripts/package_windows.py --runtime downloads/electron-win32-x64.zip --checksums downloads/SHASUMS256.txt --out release
+      - name: Retain Windows portable package
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-portable
+          path: |
+            release/*.zip
+            release/SHA256SUMS.txt
+          compression-level: 0
+          retention-days: 14
+  publish:
+    needs: desktop
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'release:')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-portable
+          path: release
+      - name: Publish tested Windows release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          gh release create "v$version" release/*.zip release/SHA256SUMS.txt --target "$GITHUB_SHA" --title "轻单 Qingdan $version" --notes-file "docs/releases/$version.md"

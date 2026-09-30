@@ -7,6 +7,9 @@ const icons = {
   minus:'<path d="M6 12h12"/>', x:'<path d="m6 6 12 12M18 6 6 18"/>',
   search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>',
   plus:'<path d="M12 5v14M5 12h14"/>', arrow:'<path d="M5 12h14m-5-5 5 5-5 5"/>',
+  dock:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 4v16m-8-8h5m-2-2 2 2-2 2"/>',
+  quiet:'<path d="M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10Z"/>',
+  repeat:'<path d="M4 8h13l-3-3m3 3-3 3M20 16H7l3 3m-3-3 3-3"/>',
   check:'<path d="m5 12 4 4L19 6"/>',
   'check-circle':'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -63,7 +66,9 @@ function render() {
   $('pinButton').title = state.settings.alwaysOnTop ? '已置顶 · 点击取消' : '点击始终置顶';
   $('pinButton').setAttribute('aria-label',state.settings.alwaysOnTop ? '取消置顶' : '始终置顶');
   $('pinButton').setAttribute('aria-pressed',String(state.settings.alwaysOnTop));
-  $('fullView').hidden = !!current.collapsed; $('compactView').hidden = !current.collapsed;
+  $('titlebar').hidden = !!current.tucked; $('edgeView').hidden = !current.tucked;
+  document.body.classList.toggle('edge-mode',!!current.tucked);
+  $('fullView').hidden = !!current.collapsed || !!current.tucked; $('compactView').hidden = !current.collapsed || !!current.tucked;
   setIcon('collapseButton',current.collapsed ? 'expand' : 'collapse');
   $('collapseButton').title = current.collapsed ? '展开清单' : '收成小条'; $('collapseButton').setAttribute('aria-label',$('collapseButton').title);
   const active = state.tasks.filter(t => !t.completedAt), tasks = active.filter(t => t.kind === 'task'), sticky = active.filter(t => t.kind === 'sticky'), done = state.tasks.filter(t => t.completedAt);
@@ -78,24 +83,49 @@ function render() {
   const overdue = tasks.filter(t => M.deadline(t,state.settings,now).level === 'overdue').length;
   const near = tasks.filter(t => ['soon','urgent'].includes(M.deadline(t,state.settings,now).level)).length;
   const todayDone = done.filter(t => localDate(new Date(t.completedAt)) === localDate(today)).length;
+  $('edgeCount').textContent = overdue ? overdue : tasks.length;
+  $('edgeView').dataset.level = overdue ? 'overdue' : near ? 'urgent' : 'none';
+  $('edgeOpen').title = (overdue ? overdue + ' 件待办已到期' : tasks.length + ' 件待办') + ' · 点击展开';
   $('nearSummary').textContent = overdue ? overdue + ' 件已逾期' + (near ? ' · ' + near + ' 件临近' : '') : near ? near + ' 件快到时间了' : todayDone ? '今天已完成 ' + todayDone + ' 件，很棒。' : '把重要的事，留在桌边';
   $('nearSummary').classList.toggle('attention', !!(overdue || near));
-  for (const [id,number] of [['countAll',active.length],['countDdl',dueTasks.length],['countSticky',sticky.length],['countDone',done.length]]) $(id).textContent = number;
+  for (const [id,number] of [['countAll',active.length],['countDdl',dueTasks.filter(t => !t.repeat).length],['countRepeat',tasks.filter(t => t.repeat).length],['countSticky',sticky.length],['countDone',done.length]]) $(id).textContent = number;
   document.querySelectorAll('[data-tab]').forEach(button => { button.classList.toggle('active',button.dataset.tab === tab); button.setAttribute('aria-pressed',String(button.dataset.tab === tab)); });
   renderList(now);
   $('deadlineLegend').hidden = !dueTasks.length || tab === 'sticky' || tab === 'done';
-  $('quickInput').placeholder = tab === 'sticky' ? '写下一条长期提醒，回车记下…' : '写下一件事，回车记下…';
+  $('quickInput').placeholder = tab === 'sticky' ? '写一条常驻提醒，回车记下…' : tab === 'repeat' ? '写一件日常小事，回车设置循环…' : '写下一件事，回车记下…';
   $('undoButton').disabled = !current.canUndo;
   $('saveStatus').className = ''; const dot = el('i'); $('saveStatus').replaceChildren(dot,document.createTextNode('已保存在本机'));
   $('recoveryNotice').hidden = !current.notice; $('recoveryNotice').textContent = current.notice || '';
   if ($('settingsDialog').open) renderSettings();
 }
+function renderShelf(sticky) {
+  $('stickyShelf').hidden = tab !== 'all' || !sticky.length;
+  $('shelfCount').textContent = sticky.length;
+  $('shelfBody').hidden = state.settings.stickyCollapsed;
+  $('stickyToggle').setAttribute('aria-expanded',String(!state.settings.stickyCollapsed));
+  setIcon('shelfChevron',state.settings.stickyCollapsed ? 'expand' : 'collapse');
+  const fragment = document.createDocumentFragment();
+  for (const t of sticky.slice(0,2)) {
+    const row = el('article','task-row shelf-row'); row.dataset.id = t.id; row.dataset.level = 'sticky';
+    const mark = el('button','task-check sticky'); mark.type = 'button'; mark.append(icon('pin'));
+    mark.setAttribute('aria-label','编辑常驻提醒：' + t.title); mark.addEventListener('click',() => openEditor(t.id));
+    const content = el('button','task-content'); content.type = 'button'; content.setAttribute('aria-label','编辑：' + t.title);
+    const title = el('span','task-title',t.title); if (t.important) { const star = el('span','important-star'); star.append(icon('star')); title.append(star); }
+    content.append(title); if (t.note) content.append(el('span','task-note',t.note));
+    content.addEventListener('click',() => openEditor(t.id)); row.append(mark,content); fragment.append(row);
+  }
+  $('stickyItems').replaceChildren(fragment);
+  $('viewSticky').hidden = sticky.length <= 2;
+  $('viewSticky').replaceChildren(document.createTextNode('还有 ' + Math.max(0,sticky.length-2) + ' 条 · 查看全部 '),icon('arrow'));
+}
 function renderList(now = Date.now()) {
   const scroll = $('listArea').scrollTop, fragment = document.createDocumentFragment();
   const groups = M.groups(state.tasks,tab,query,state.settings,now);
   const count = groups.reduce((sum,g) => sum + g.tasks.length,0);
+  renderShelf(groups.find(g => g.key === 'sticky')?.tasks || []);
   for (const group of groups) {
     if (!group.tasks.length) continue;
+    if (tab === 'all' && group.key === 'sticky') continue;
     const section = el('section','task-group group-' + group.key), heading = el('h2','group-label',group.label);
     heading.append(el('span','group-count',group.tasks.length)); section.append(heading);
     for (const t of group.tasks) {
@@ -105,11 +135,12 @@ function renderList(now = Date.now()) {
       check.type = 'button'; check.title = t.completedAt ? '恢复到清单' : t.kind === 'sticky' ? '编辑长期提醒' : '标记完成';
       check.setAttribute('aria-label',check.title + '：' + t.title);
       if (t.completedAt || t.kind === 'sticky') check.append(icon(t.completedAt ? 'check' : 'pin'));
+      if (t.occurrenceOf) { check.disabled = true; check.title = '已完成本次循环 · 可用撤销恢复刚完成的一次'; }
       check.addEventListener('click',() => {
         if (Date.now() < suppressClickUntil) return;
         suppressClickUntil = Date.now()+220;
         if (t.kind === 'sticky' && !t.completedAt) openEditor(t.id);
-        else act({ type:'toggle', id:t.id },t.completedAt ? '已放回清单' : '完成一件，轻一点。');
+        else act({ type:'toggle', id:t.id },t.completedAt ? '已放回清单' : t.repeat ? '本次完成，已安排下一次。' : '完成一件，轻一点。');
       });
       const content = el('button','task-content'); content.type = 'button'; content.setAttribute('aria-label','编辑：' + t.title);
       const title = el('span','task-title',t.title);
@@ -120,9 +151,10 @@ function renderList(now = Date.now()) {
         const meta = el('span','task-meta'), pill = el('span','due-pill level-' + d.level);
         pill.append(icon('clock'),document.createTextNode(d.text));
         meta.append(pill,el('span','due-date',fullDate(t.dueAt))); content.append(meta);
+        if (t.repeat) { const repeat = el('span','repeat-meta'); repeat.append(icon('repeat'),document.createTextNode(M.repeats[t.repeat] + (t.repeat === 'weekly' ? weekdays[new Date(t.dueAt).getDay()].slice(1) : '') + ' · ' + pad(new Date(t.dueAt).getHours()) + ':' + pad(new Date(t.dueAt).getMinutes()))); content.append(repeat); }
       } else if (t.kind === 'sticky' && !t.completedAt) {
         const meta = el('span','task-meta'), sticky = el('span','sticky-meta'); sticky.append(icon('leaf'),document.createTextNode('一直在这里')); meta.append(sticky); content.append(meta);
-      } else if (t.completedAt) { content.append(el('span','task-meta',(t.kind === 'sticky' ? '归档于 ' : '完成于 ') + fullDate(t.completedAt))); }
+      } else if (t.completedAt) { content.append(el('span','task-meta',(t.kind === 'sticky' ? '归档于 ' : '完成于 ') + fullDate(t.completedAt))); if (t.occurrenceOf) content.append(el('span','repeat-meta',M.repeats[t.occurrenceRepeat] + ' · 本次完成记录')); }
       content.addEventListener('click',() => openEditor(t.id));
       const menu = el('button','row-menu'); menu.title = '编辑 / 删除'; menu.setAttribute('aria-label','更多操作：' + t.title); menu.append(icon('more')); menu.addEventListener('click',() => openEditor(t.id));
       row.append(check,content,menu); section.append(row);
@@ -136,6 +168,7 @@ function renderList(now = Date.now()) {
     if (query) { title = '暂时没找到这件事。'; description = '换个词试试，标题和备注都能搜。'; }
     else if (tab === 'done') { title = '完成的小事，也值得记录。'; description = '点一下待办前的小方框，\n完成的事情就会来到这里。'; }
     else if (tab === 'ddl') { title = '暂时没有倒计时。'; description = '给待办加个截止时间，\n临近时，轻单会自动变色提醒。'; }
+    else if (tab === 'repeat') { title = '给日常小事，一个固定时间。'; description = '每天喝水、工作日打卡、每周复盘。\n记一次，以后按时提醒。'; }
     else if (tab === 'sticky') { title = '有些事，值得一直记着。'; description = '长期目标、日常叮嘱、注意事项。\n没有期限，也有自己的位置。'; }
     $('emptyTitle').textContent = title; $('emptyDescription').replaceChildren(...description.split('\n').flatMap((s,i) => i ? [el('br'),document.createTextNode(s)] : [document.createTextNode(s)]));
     $('emptyAdd').hidden = !!query || tab === 'done';
@@ -147,7 +180,13 @@ function setKind(kind) {
   $('kindTask').setAttribute('aria-pressed',String(kind === 'task')); $('kindSticky').setAttribute('aria-pressed',String(kind === 'sticky'));
   $('ddlControls').hidden = kind === 'sticky'; $('stickyHint').hidden = kind !== 'sticky';
 }
-function dateFields() { $('dateFields').hidden = !$('hasDue').checked; $('dueDate').required = $('hasDue').checked && editKind === 'task'; previewDate(); }
+function dateFields() {
+  const repeat = editKind === 'task' && $('repeatSelect').value;
+  if (repeat) $('hasDue').checked = true;
+  $('hasDue').disabled = !!repeat; $('repeatHint').hidden = !repeat;
+  $('dueLabel').textContent = repeat ? '首次日期 / 提醒时间' : '截止时间';
+  $('dateFields').hidden = !$('hasDue').checked; $('dueDate').required = $('hasDue').checked && editKind === 'task'; previewDate();
+}
 function editorDue() {
   if (editKind === 'sticky' || !$('hasDue').checked) return null;
   if (!$('dueDate').value) throw new Error('请选择截止日期。');
@@ -157,11 +196,15 @@ function editorDue() {
   return d.toISOString();
 }
 function previewDate() {
-  try { const dueAt = editorDue(); if (!dueAt) return; const d = M.deadline({ dueAt },state.settings); $('duePreview').textContent = d.text + ' · ' + (d.level === 'overdue' ? '这个日期已经过去了' : '到时间前会自动变色'); $('duePreview').className = 'due-preview'; $('duePreview').dataset.level = d.level; }
+  try { let dueAt = editorDue(); if (!dueAt) return; const repeat = $('repeatSelect').value;
+    if (repeat) dueAt = M.nextRepeat(dueAt,repeat,Date.now(),true);
+    const d = M.deadline({ dueAt },state.settings);
+    $('duePreview').textContent = repeat ? M.repeats[repeat] + (repeat === 'weekly' ? weekdays[new Date(dueAt).getDay()].slice(1) : '') + ' · 下一次 ' + fullDate(dueAt) : d.text + ' · ' + (d.level === 'overdue' ? '这个日期已经过去了' : '到时间前会自动变色'); $('duePreview').className = 'due-preview'; $('duePreview').dataset.level = repeat ? 'future' : d.level; }
   catch(_) { $('duePreview').textContent = ''; }
 }
 function openEditor(id = null, initial = '') {
   if (!state) return;
+  command('modal-open',true);
   if (current.collapsed) command('collapse',false);
   if ($('settingsDialog').open) $('settingsDialog').close();
   const t = id ? state.tasks.find(t => t.id === id) : null; if (id && !t) return;
@@ -170,11 +213,14 @@ function openEditor(id = null, initial = '') {
   $('taskTitle').value = t ? t.title : initial;
   $('taskNote').value = t ? t.note : '';
   $('taskImportant').checked = t ? t.important : false;
+  $('repeatSelect').value = t ? t.repeat || '' : tab === 'repeat' ? 'daily' : '';
+  $('repeatSelect').disabled = !!t?.occurrenceOf;
   $('hasDue').checked = !!(t && t.dueAt) || (!t && tab === 'ddl');
   const date = t && t.dueAt ? new Date(t.dueAt) : new Date();
-  $('dueDate').value = localDate(date); $('dueTime').value = t && t.dueAt ? pad(date.getHours()) + ':' + pad(date.getMinutes()) : '23:59';
+  $('dueDate').value = localDate(date); $('dueTime').value = t && t.dueAt ? pad(date.getHours()) + ':' + pad(date.getMinutes()) : tab === 'repeat' ? '09:00' : '23:59';
   setKind(t ? t.kind : tab === 'sticky' ? 'sticky' : 'task'); dateFields();
-  $('editActions').hidden = !t; $('completeTask').textContent = t && t.completedAt ? '恢复到清单' : t && t.kind === 'sticky' ? '归档这条提醒' : '标记完成';
+  $('editActions').hidden = !t; $('completeTask').hidden = !!t?.occurrenceOf;
+  $('completeTask').textContent = t && t.completedAt ? '恢复到清单' : t && t.kind === 'sticky' ? '归档这条提醒' : t && t.repeat ? '完成本次' : '标记完成';
   $('saveTask').replaceChildren(document.createTextNode(id ? '保存修改 ' : '记下来 '),icon('arrow'));
   $('saveTask').disabled = false; $('editorError').hidden = true;
   $('editorDialog').showModal(); $('editorDialog').querySelector('.sheet-body').scrollTop = 0;
@@ -185,7 +231,7 @@ function renderSettings() {
   const s = state.settings;
   document.querySelectorAll('[data-theme]').forEach(n => { if (n.tagName === 'BUTTON') n.classList.toggle('selected',n.dataset.theme === s.theme); });
   document.querySelectorAll('[data-accent]').forEach(n => { if (n.tagName === 'BUTTON') n.classList.toggle('selected',n.dataset.accent === s.accent); });
-  for (const id of ['reminders','alwaysOnTop','launchOnStartup']) $(id).checked = s[id];
+  for (const id of ['reminders','alwaysOnTop','launchOnStartup','autoTuck']) $(id).checked = s[id];
   $('warnDays').value = s.warnDays; $('urgentHours').value = s.urgentHours;
   if (document.activeElement !== $('opacityRange')) $('opacityRange').value = Math.round(s.opacity * 100);
   $('opacityValue').textContent = Math.round(s.opacity * 100) + '%';
@@ -196,6 +242,12 @@ function showSearch() { $('searchRow').hidden = false; $('searchInput').focus();
 function closeSearch() { query = ''; $('searchInput').value = ''; $('searchRow').hidden = true; renderList(); }
 fillIcons();
 $('pinButton').addEventListener('click',() => act({ type:'settings', settings:{ alwaysOnTop:!state.settings.alwaysOnTop } }));
+$('dockButton').addEventListener('click',() => command('tuck',true));
+$('edgeOpen').addEventListener('click',() => command('tuck',false));
+$('quietButton').addEventListener('click',() => command('away',15));
+$('stickyToggle').addEventListener('click',() => act({ type:'settings', settings:{ stickyCollapsed:!state.settings.stickyCollapsed } }));
+$('viewSticky').addEventListener('click',() => { tab = 'sticky'; render(); });
+$('addSticky').addEventListener('click',() => { openEditor(); setKind('sticky'); dateFields(); });
 $('collapseButton').addEventListener('click',() => command('collapse',!current.collapsed));
 $('compactView').addEventListener('click',() => command('collapse',false));
 $('hideButton').addEventListener('click',() => command('hide'));
@@ -211,26 +263,30 @@ $('quickInput').addEventListener('keydown',event => { if (event.key === 'Enter' 
 $('quickForm').addEventListener('submit',async event => {
   event.preventDefault(); if (composing || busy) return;
   const title = $('quickInput').value.trim(); if (!title) { openEditor(); return; }
-  if (tab === 'ddl') { openEditor(null,title); return; }
+  if (tab === 'ddl' || tab === 'repeat') { openEditor(null,title); return; }
   const result = await act({ type:'add', task:{ title, kind:tab === 'sticky' ? 'sticky' : 'task' } });
   if (result) { $('quickInput').value = ''; if (tab === 'done') { tab = 'all'; render(); } $('quickInput').focus(); }
 });
 document.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click',() => { setKind(button.dataset.kind); dateFields(); }));
 $('hasDue').addEventListener('change',dateFields);
+$('repeatSelect').addEventListener('change',() => { if ($('repeatSelect').value && $('dueTime').value === '23:59') $('dueTime').value = '09:00'; dateFields(); });
 for (const id of ['dueDate','dueTime']) $(id).addEventListener('input',previewDate);
 document.querySelectorAll('[data-days]').forEach(button => button.addEventListener('click',() => { const d = new Date(); d.setDate(d.getDate()+Number(button.dataset.days)); $('dueDate').value = localDate(d); previewDate(); }));
 document.querySelectorAll('.close-editor').forEach(button => button.addEventListener('click',closeEditor));
 $('editorDialog').addEventListener('cancel',() => { editId = null; });
+for (const id of ['editorDialog','settingsDialog']) $(id).addEventListener('close',() => command('modal-open',$('editorDialog').open || $('settingsDialog').open));
 $('editorForm').addEventListener('submit',async event => {
   event.preventDefault(); if (busy) return;
   try {
     $('editorError').hidden = true;
-    const task = { title:$('taskTitle').value.trim(), note:$('taskNote').value, kind:editKind, dueAt:editorDue(), important:$('taskImportant').checked };
+    const repeat = editKind === 'task' ? $('repeatSelect').value || null : null;
+    let dueAt = editorDue(); if (repeat) dueAt = M.nextRepeat(dueAt,repeat,Date.now(),true);
+    const task = { title:$('taskTitle').value.trim(), note:$('taskNote').value, kind:editKind, dueAt, repeat, important:$('taskImportant').checked };
     if (!task.title) throw new Error('先写下这件事的名字吧。');
     $('saveTask').disabled = true;
     const wasEdit = !!editId;
     const result = await act(wasEdit ? { type:'update', id:editId, task } : { type:'add', task });
-    if (result) { closeEditor(); $('quickInput').value = ''; if (tab === 'done' && !wasEdit || tab === 'ddl' && task.kind === 'sticky' || tab === 'sticky' && task.kind !== 'sticky') { tab = task.kind === 'sticky' ? 'sticky' : 'all'; render(); } toast(wasEdit ? '修改已保存' : '记下了，留在桌边。',true); }
+    if (result) { closeEditor(); $('quickInput').value = ''; if (tab === 'done' && !wasEdit || tab === 'ddl' && (task.kind === 'sticky' || task.repeat) || tab === 'sticky' && task.kind !== 'sticky' || tab === 'repeat' && !task.repeat) { tab = task.kind === 'sticky' ? 'sticky' : task.repeat ? 'repeat' : 'all'; render(); } toast(wasEdit ? '修改已保存' : task.repeat ? '已安排循环提醒。' : '记下了，留在桌边。',true); }
   } catch(error) { errorMessage(error); }
   finally { $('saveTask').disabled = false; }
 });
@@ -238,11 +294,11 @@ $('deleteTask').addEventListener('click',async () => { if (editId && await act({
 $('completeTask').addEventListener('click',async () => { if (editId && await act({ type:'toggle', id:editId })) { closeEditor(); toast('清单已更新',true); } });
 async function undo() { if (await act({ type:'undo' })) toast('已撤销上一步'); }
 $('undoButton').addEventListener('click',undo); $('toastUndo').addEventListener('click',undo); $('toastClose').addEventListener('click',() => $('toast').hidden = true);
-$('settingsButton').addEventListener('click',() => { $('settingsError').hidden = true; $('settingsDialog').showModal(); renderSettings(); });
+$('settingsButton').addEventListener('click',() => { command('modal-open',true); $('settingsError').hidden = true; $('settingsDialog').showModal(); renderSettings(); });
 $('closeSettings').addEventListener('click',() => $('settingsDialog').close());
 document.querySelectorAll('button[data-theme]').forEach(button => button.addEventListener('click',() => act({ type:'settings', settings:{ theme:button.dataset.theme } })));
 document.querySelectorAll('button[data-accent]').forEach(button => button.addEventListener('click',() => act({ type:'settings', settings:{ accent:button.dataset.accent } })));
-for (const id of ['alwaysOnTop','reminders','launchOnStartup']) $(id).addEventListener('change',() => act({ type:'settings', settings:{ [id]:$(id).checked } }));
+for (const id of ['alwaysOnTop','reminders','launchOnStartup','autoTuck']) $(id).addEventListener('change',() => act({ type:'settings', settings:{ [id]:$(id).checked } }));
 for (const id of ['warnDays','urgentHours']) $(id).addEventListener('change',() => act({ type:'settings', settings:{ [id]:Number($(id).value) } }));
 $('opacityRange').addEventListener('input',() => $('opacityValue').textContent = $('opacityRange').value + '%');
 $('opacityRange').addEventListener('change',() => act({ type:'settings', settings:{ opacity:Number($('opacityRange').value)/100 } }));

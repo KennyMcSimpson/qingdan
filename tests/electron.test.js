@@ -21,6 +21,8 @@ async function start() {
   page.on('pageerror',e=>errors.push(e.message));
   await page.waitForFunction(()=>window.qingdan && document.querySelector('#todayDate').textContent.length>0);
   await page.evaluate(()=>document.fonts.ready);
+  // Keep the baseline interaction checks stable; automatic tucking has its own native-focus check.
+  await action({type:'settings',settings:{autoTuck:false}});
 }
 async function state() { return (await page.evaluate(()=>window.qingdan.read())).state; }
 async function action(a) { const r=await page.evaluate(a=>window.qingdan.action(a),a); if(r.error)throw new Error(r.error); return r; }
@@ -114,8 +116,71 @@ async function main() {
     await page.locator('#detailAdd').click();await page.locator('#taskTitle').fill('这是一个较长的待办标题，用来检查输入和按钮布局');
     await page.locator('#hasDue').check();await shot('minimum-editor');assert.equal(await page.locator('#saveTask').isVisible(),true);await page.locator('.close-editor').click();
   });
+  await check('recurring editor saves a chosen time and completes only the current occurrence',async()=>{
+    await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:388,height:660}));
+    await page.locator('[data-tab=repeat]').click();await page.locator('#quickInput').fill('每天整理桌面');await page.locator('#quickInput').press('Enter');
+    assert.equal(await page.locator('#repeatSelect').inputValue(),'daily');assert.equal(await page.locator('#hasDue').isDisabled(),true);
+    await page.locator('#dueTime').fill('21:30');await shot('recurring-editor');await page.locator('#saveTask').click();
+    let t=(await state()).tasks.find(t=>t.title==='每天整理桌面'&&t.repeat);assert.equal(t.repeat,'daily');assert.equal(new Date(t.dueAt).getHours(),21);assert.equal(new Date(t.dueAt).getMinutes(),30);
+    const old=t.dueAt;await page.getByRole('button',{name:'标记完成：每天整理桌面',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('#countDone').textContent==='1');
+    const next=(await state()).tasks.find(x=>x.id===t.id);assert.equal(next.completedAt,null);assert.ok(Date.parse(next.dueAt)>Date.parse(old));
+    const history=(await state()).tasks.find(x=>x.occurrenceOf===t.id);assert.equal(history.dueAt,old);
+    await page.locator('#undoButton').click();assert.equal((await state()).tasks.find(x=>x.id===t.id).dueAt,old);
+    await page.getByRole('button',{name:'编辑：每天整理桌面',exact:true}).click();await page.locator('#repeatSelect').selectOption('weekdays');await page.locator('#saveTask').click();
+    assert.equal((await state()).tasks.find(x=>x.id===t.id).repeat,'weekdays');
+  });
+  await check('permanent reminders are above the scrollable tasks and the shelf is bounded',async()=>{
+    await page.locator('[data-tab=all]').click();assert.equal(await page.locator('#stickyShelf').isVisible(),true);
+    const shelf=await page.locator('#stickyShelf').boundingBox(), list=await page.locator('#listArea').boundingBox();assert.ok(shelf.y+shelf.height<=list.y+1);
+    await action({type:'add',task:{title:'每天保持一点运动',kind:'sticky'}});await action({type:'add',task:{title:'大改之前留一份备份',kind:'sticky',important:true}});
+    assert.equal(await page.locator('#stickyItems .shelf-row').count(),2);assert.equal(await page.locator('#viewSticky').isVisible(),true);
+    await page.locator('#stickyToggle').click();assert.equal(await page.locator('#shelfBody').isVisible(),false);assert.equal((await state()).settings.stickyCollapsed,true);
+    await page.locator('#stickyToggle').click();await page.locator('#viewSticky').click();assert.equal(await page.locator('#taskList .task-row').count(),3);await page.locator('[data-tab=all]').click();
+  });
+  await check('edge mode uses a narrow native window and restores full geometry',async()=>{
+    const before=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());
+    await page.locator('#dockButton').click();await page.waitForFunction(()=>!document.querySelector('#edgeView').hidden);
+    const b=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());assert.equal(b.width,46);assert.equal(b.height,164);
+    assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isAlwaysOnTop()),true);await shot('edge');
+    await page.locator('#edgeOpen').click();const after=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());assert.equal(after.width,before.width);assert.equal(after.height,before.height);
+    assert.equal(await page.locator('#fullView').isVisible(),true);
+  });
+  await check('blur tucks the native window but an open editor protects unsaved input',async()=>{
+    await action({type:'settings',settings:{autoTuck:true}});
+    await desktop.evaluate(({BrowserWindow})=>{globalThis.testFocusWindow=new BrowserWindow({width:150,height:150,show:true});globalThis.testFocusWindow.focus();});
+    await page.waitForFunction(()=>!document.querySelector('#edgeView').hidden,{},{timeout:8000});
+    await desktop.evaluate(({BrowserWindow})=>{globalThis.testFocusWindow.destroy();BrowserWindow.getAllWindows()[0].focus();});await page.locator('#edgeOpen').click();
+    await page.locator('#detailAdd').click();await page.locator('#taskTitle').fill('这段输入不能丢');
+    await desktop.evaluate(({BrowserWindow})=>{globalThis.testFocusWindow=new BrowserWindow({width:150,height:150,show:true});globalThis.testFocusWindow.focus();});
+    await desktop.evaluate(()=>new Promise(resolve=>setTimeout(resolve,1200)));
+    assert.equal((await page.evaluate(()=>window.qingdan.read())).tucked,false);assert.equal(await page.locator('#taskTitle').inputValue(),'这段输入不能丢');
+    await desktop.evaluate(({BrowserWindow})=>{globalThis.testFocusWindow.destroy();BrowserWindow.getAllWindows()[0].focus();});await page.locator('.close-editor').click();
+    await action({type:'settings',settings:{autoTuck:false}});
+  });
+  await check('temporary hide returns as a tab and manual recall cancels the timer',async()=>{
+    await desktop.evaluate(()=>{globalThis.qingdanOriginalTimeout=setTimeout;globalThis.setTimeout=(fn,delay,...args)=>globalThis.qingdanOriginalTimeout(fn,delay===15*60000?400:delay,...args);});
+    try {
+      await page.locator('#quietButton').click();assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible()),false);
+      await page.waitForFunction(()=>!document.querySelector('#edgeView').hidden,{},{timeout:6000});
+      assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible()),true);await page.locator('#edgeOpen').click();
+      await page.locator('#quietButton').click();await desktop.evaluate(({app})=>app.emit('activate'));
+      await desktop.evaluate(()=>new Promise(resolve=>setTimeout(resolve,600)));
+      assert.equal((await page.evaluate(()=>window.qingdan.read())).tucked,false);
+      assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible()),true);
+    } finally {await desktop.evaluate(()=>{globalThis.setTimeout=globalThis.qingdanOriginalTimeout;delete globalThis.qingdanOriginalTimeout;});}
+  });
+  await check('final layout remains usable at minimum size with a full shelf',async()=>{
+    await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:340,height:420}));
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
+    const list=await page.locator('#listArea').boundingBox();assert.ok(list.height>=65);await shot('minimum-with-shelf');
+    await page.locator('[data-tab=repeat]').click();await page.getByRole('button',{name:'编辑：每天整理桌面',exact:true}).click();
+    const save=await page.locator('#saveTask').boundingBox();assert.ok(save.y>=0&&save.y+save.height<=420);await shot('minimum-recurring-editor');await page.locator('.close-editor').click();
+    await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:388,height:660}));await page.locator('[data-tab=all]').click();await shot('v1.1-paper');
+    await action({type:'settings',settings:{theme:'dark'}});await shot('v1.1-dark');await action({type:'settings',settings:{theme:'paper'}});
+  });
   assert.deepEqual(errors,[]);
-  const result={date:new Date().toISOString(),environment:'Real Electron on Linux / Xvfb; Windows package separately checked',passed:checks.length,checks,rendererErrors:errors};
+  const result={date:new Date().toISOString(),environment:'Real Electron on '+process.platform,passed:checks.length,checks,rendererErrors:errors};
   fs.writeFileSync(path.join(images,'integration-results.json'),JSON.stringify(result,null,2));
   console.log(JSON.stringify(result,null,2));
 }

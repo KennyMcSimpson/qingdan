@@ -4,6 +4,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const Model = require('./model');
+const Layout = require('./layout');
 const { Store } = require('./store');
 
 app.setName('Qingdan');
@@ -12,8 +13,9 @@ else app.setPath('userData', path.join(app.getPath('appData'), 'Qingdan'));
 app.setAppUserModelId('com.qingdan.desktop');
 // A modest, static utility: software rendering also avoids driver-specific blank windows.
 app.disableHardwareAcceleration();
-let win, tray, store, state, quitting = false, collapsed = false, normalHeight = 710;
-let boundsTimer, reminderTimer, shortcutAvailable = true, archive = [], fatal = false;
+let win, tray, store, state, quitting = false, collapsed = false, tucked = false, normalHeight = 660;
+let normalBounds, edgeSide = 'right', boundsTimer, reminderTimer, tuckTimer, awayTimer;
+let modalOpen = false, nativeDialogOpen = false, changingBounds = false, shortcutAvailable = true, archive = [], fatal = false;
 const asset = name => path.join(__dirname, '..', 'assets', name);
 const page = path.join(__dirname, 'index.html');
 
@@ -21,7 +23,7 @@ function log(error) {
   try { fs.appendFileSync(path.join(app.getPath('userData'), 'error.log'), new Date().toISOString() + ' ' + String(error.stack || error) + '\n'); } catch (_) {}
 }
 function report(error) { log(error); if (win && !win.isDestroyed()) win.webContents.send('app:error', error.message || String(error)); }
-function payload() { return { state, collapsed, dataPath: store.directory, notice: store.notice, shortcutAvailable, canUndo: archive.length > 0 }; }
+function payload() { return { state, collapsed, tucked, dataPath: store.directory, notice: store.notice, shortcutAvailable, canUndo: archive.length > 0 }; }
 function broadcast() { if (win && !win.isDestroyed()) win.webContents.send('state:changed', payload()); }
 function commit(next, undoable = false) {
   const previous = state;
@@ -34,8 +36,11 @@ function commit(next, undoable = false) {
 function captureBounds() {
   if (!win || win.isDestroyed() || win.isMinimized()) return;
   const b = win.getBounds();
-  if (!collapsed) normalHeight = b.height;
-  state.window = { ...b, collapsed, expandedHeight: normalHeight };
+  if (!tucked) {
+    if (!collapsed) normalHeight = b.height;
+    normalBounds = { ...b, height: normalHeight };
+  }
+  state.window = { ...normalBounds, collapsed, tucked, edgeSide, edgeY: tucked ? b.y : normalBounds.y, expandedHeight: normalHeight };
 }
 function saveBounds() {
   if (quitting || fatal) return;
@@ -43,20 +48,21 @@ function saveBounds() {
   try { state = store.write(state); } catch(error) { report(error); }
 }
 function visibleBounds(b, isCollapsed = false) {
-  const proposed = { x: Number.isFinite(b.x) ? b.x : 0, y: Number.isFinite(b.y) ? b.y : 0, width: b.width || 404, height: b.height || 710 };
+  const proposed = { x: Number.isFinite(b.x) ? b.x : 0, y: Number.isFinite(b.y) ? b.y : 0, width: b.width || 388, height: b.height || 660 };
   const area = Number.isFinite(b.x) ? screen.getDisplayMatching(proposed).workArea : screen.getPrimaryDisplay().workArea;
-  const width = Math.min(area.width, Math.max(340, Math.min(700, proposed.width)));
-  const height = Math.min(area.height, isCollapsed ? 132 : Math.max(420, Math.min(1100, proposed.height)));
-  return { width, height, x: Math.max(area.x, Math.min(area.x + area.width - width, Number.isFinite(b.x) ? b.x : area.x + area.width - width - 28)),
-    y: Math.max(area.y, Math.min(area.y + area.height - height, Number.isFinite(b.y) ? b.y : area.y + 40)) };
+  return Layout.visibleBounds(b, area, isCollapsed);
 }
 function show(focusAdd = false) {
   if (!win) return;
+  clearTimeout(awayTimer); clearTimeout(tuckTimer);
   if (win.isMinimized()) win.restore();
+  if (tucked) setTucked(false);
+  if (focusAdd && collapsed) setCollapsed(false);
   win.setBounds(visibleBounds(win.getBounds(), collapsed)); win.show(); win.focus();
-  if (focusAdd) { if (collapsed) setCollapsed(false); win.webContents.send('focus:add'); }
+  if (focusAdd) win.webContents.send('focus:add');
 }
 function setCollapsed(value) {
+  if (tucked) setTucked(false);
   const next = !!value;
   if (next === collapsed) return payload();
   const b = win.getBounds();
@@ -67,8 +73,51 @@ function setCollapsed(value) {
   win.setBounds(visibleBounds({ ...b, height: next ? 132 : normalHeight }, next));
   captureBounds(); commit(state); return payload();
 }
+function setTucked(value) {
+  clearTimeout(tuckTimer);
+  const next = !!value;
+  if (next === tucked) return payload();
+  changingBounds = true;
+  try {
+    if (next) {
+      captureBounds();
+      const b = win.getBounds(), area = screen.getDisplayMatching(b).workArea;
+      edgeSide = Layout.nearestEdge(b, area); tucked = true;
+      win.setMinimumSize(46,164); win.setMaximumSize(46,164); win.setResizable(false);
+      win.setBounds(Layout.edgeBounds(b, area, edgeSide)); win.setAlwaysOnTop(true);
+    } else {
+      const edge = win.getBounds(), area = screen.getDisplayMatching(edge).workArea;
+      tucked = false;
+      win.setMinimumSize(340,collapsed ? 132 : 420); win.setMaximumSize(700,collapsed ? 132 : 1100); win.setResizable(true);
+      const width = normalBounds.width;
+      const b = { ...normalBounds, x: edgeSide === 'left' ? area.x + 8 : area.x + area.width - width - 8,
+        y: edge.y, height: collapsed ? 132 : normalHeight };
+      win.setBounds(Layout.visibleBounds(b, area, collapsed)); win.setAlwaysOnTop(state.settings.alwaysOnTop);
+    }
+    captureBounds(); commit(state); return payload();
+  } finally { changingBounds = false; }
+}
+function scheduleTuck() {
+  clearTimeout(tuckTimer);
+  if (!state.settings.autoTuck || modalOpen || nativeDialogOpen || tucked || quitting) return;
+  tuckTimer = setTimeout(() => {
+    if (state.settings.autoTuck && !win.isDestroyed() && win.isVisible() && !win.isFocused() && !modalOpen && !nativeDialogOpen) {
+      try { setTucked(true); } catch(error) { report(error); }
+    }
+  },900);
+}
+function away(minutes) {
+  const duration = [5,15,30].includes(minutes) ? minutes : 15;
+  clearTimeout(awayTimer); clearTimeout(tuckTimer);
+  if (tray) win.hide(); else win.minimize();
+  awayTimer = setTimeout(() => {
+    if (quitting || win.isDestroyed()) return;
+    try { setTucked(true); win.showInactive(); } catch(error) { report(error); }
+  },duration * 60000);
+  return { ok:true };
+}
 function applyNativeSettings(previous = state.settings) {
-  win.setAlwaysOnTop(state.settings.alwaysOnTop);
+  win.setAlwaysOnTop(tucked || state.settings.alwaysOnTop);
   win.setOpacity(state.settings.opacity);
   win.setBackgroundColor(state.settings.theme === 'dark' ? '#242823' : '#f8f7f2');
   if (process.platform === 'win32' && previous.launchOnStartup !== state.settings.launchOnStartup) {
@@ -96,19 +145,22 @@ function updateTray() {
     { label: '打开轻单', click: () => show() }, { label: '新记一件事', click: () => show(true) },
     { type: 'separator' },
     { label: '始终置顶', type: 'checkbox', checked: state.settings.alwaysOnTop, click: item => { try { updateSettings({ alwaysOnTop: item.checked }); } catch(e) { report(e); } } },
-    { label: collapsed ? '展开窗口' : '收成小条', click: () => { try { setCollapsed(!collapsed); show(); } catch(e) { report(e); } } },
+    { label: tucked ? '展开窗口' : '贴边收起', click: () => { try { if (tucked) show(); else setTucked(true); } catch(e) { report(e); } } },
+    { label: '暂时隐藏 15 分钟', click: () => away(15) },
     { label: '开机启动', type: 'checkbox', checked: state.settings.launchOnStartup, enabled: process.platform === 'win32', click: item => { try { updateSettings({ launchOnStartup: item.checked }); } catch(e) { report(e); } } },
     { type: 'separator' }, { label: '退出轻单', click: () => app.quit() }
   ]));
 }
 function notifyDue() {
-  if (!state || !tray) return;
+  if (!state) return;
+  try { const rolled = Model.rollRecurring(state); if (rolled !== state) commit(rolled); } catch(error) { report(error); return; }
+  if (!tray) return;
   const candidates = Model.reminderCandidates(state);
   if (!candidates.length) return;
   const next = structuredClone(state);
   for (const x of candidates) next.notices[x.task.id] = x.key;
   try {
-    const content = candidates.slice(0,3).map(x => x.task.title.slice(0,50) + ' · ' + x.deadline.text).join('\n');
+    const content = candidates.slice(0,3).map(x => x.task.title.slice(0,50) + ' · ' + (x.task.repeat ? '到提醒时间了' : x.deadline.text)).join('\n');
     if (process.platform === 'win32') tray.displayBalloon({ title: '轻单 · ' + candidates.length + ' 件事需要留意', content, icon: nativeImage.createFromPath(asset('icon.png')), respectQuietTime: true });
     else if (!process.env.QINGDAN_TEST_DATA) { const { Notification } = require('electron'); if (Notification.isSupported()) { const n = new Notification({ title: '轻单 · 截止提醒', body: content }); n.on('click', () => show()); n.show(); } }
     commit(next);
@@ -152,14 +204,23 @@ function bindIPC() {
   handler('window:command', async (name,value) => {
     if (name === 'hide') { if (tray) win.hide(); else win.minimize(); return { ok:true }; }
     if (name === 'collapse') return setCollapsed(value);
-    if (name === 'export') return exportBackup();
-    if (name === 'import') return importBackup();
+    if (name === 'tuck') { if (!value) clearTimeout(awayTimer); const result = setTucked(value); if (!value) { win.show(); win.focus(); } return result; }
+    if (name === 'away') return away(value);
+    if (name === 'modal-open') { modalOpen = value === true; if (modalOpen) clearTimeout(tuckTimer); else if (!win.isFocused()) scheduleTuck(); return { ok:true }; }
+    if (name === 'export' || name === 'import') {
+      nativeDialogOpen = true; clearTimeout(tuckTimer);
+      try { return await (name === 'export' ? exportBackup() : importBackup()); }
+      finally { nativeDialogOpen = false; }
+    }
     if (name === 'folder') { const error = await shell.openPath(store.directory); if (error) throw new Error(error); return { ok:true }; }
     if (name === 'quit') { app.quit(); return { ok:true }; }
     if (name === 'clear-completed') {
       const count = state.tasks.filter(t => t.completedAt).length;
       if (!count) return { canceled:true };
-      const choice = await dialog.showMessageBox(win, { type:'question', title:'清理已完成', message:'清理 ' + count + ' 条已完成 / 已归档记录？', detail:'操作后可以撤销，也会保留本地备份。', buttons:['保留','清理'], defaultId:0, cancelId:0 });
+      nativeDialogOpen = true; clearTimeout(tuckTimer);
+      let choice;
+      try { choice = await dialog.showMessageBox(win, { type:'question', title:'清理已完成', message:'清理 ' + count + ' 条已完成 / 已归档记录？', detail:'操作后可以撤销，也会保留本地备份。', buttons:['保留','清理'], defaultId:0, cancelId:0 }); }
+      finally { nativeDialogOpen = false; }
       if (choice.response !== 1) return { canceled:true };
       store.snapshot(state,'before-clear');
       return commit({ ...state, tasks:state.tasks.filter(t => !t.completedAt) }, true);
@@ -169,8 +230,9 @@ function bindIPC() {
 }
 function createWindow() {
   collapsed = state.window.collapsed === true;
-  normalHeight = state.window.expandedHeight || 710;
+  normalHeight = state.window.expandedHeight || 660;
   const bounds = visibleBounds({ ...state.window, height: collapsed ? 132 : state.window.height || normalHeight }, collapsed);
+  normalBounds = { ...bounds, height: normalHeight }; edgeSide = state.window.edgeSide || 'right';
   win = new BrowserWindow({ ...bounds, minWidth:340, minHeight:collapsed ? 132 : 420, maxWidth:700, maxHeight:collapsed ? 132 : 1100,
     title:'轻单', frame:false, resizable:true, maximizable:false, fullscreenable:false, show:false,
     alwaysOnTop:state.settings.alwaysOnTop, backgroundColor:state.settings.theme === 'dark' ? '#242823' : '#f8f7f2',
@@ -180,9 +242,15 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(() => ({ action:'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
   win.webContents.on('render-process-gone', (_event,details) => { log(new Error('Renderer stopped: ' + details.reason)); if (!quitting) win.reload(); });
-  win.once('ready-to-show', () => { win.show(); });
+  win.once('ready-to-show', () => {
+    if (state.window.tucked || process.argv.includes('--startup')) {
+      try { setTucked(true); } catch(error) { report(error); }
+      win.showInactive();
+    } else { win.show(); win.focus(); }
+  });
   win.on('close', event => { if (!quitting) { event.preventDefault(); if (tray) win.hide(); else win.minimize(); } });
-  for (const event of ['resize','move']) win.on(event, () => { clearTimeout(boundsTimer); boundsTimer = setTimeout(saveBounds, 650); });
+  win.on('blur',scheduleTuck); win.on('focus',() => clearTimeout(tuckTimer));
+  for (const event of ['resize','move']) win.on(event, () => { if (changingBounds) return; clearTimeout(boundsTimer); boundsTimer = setTimeout(saveBounds, 650); });
   win.loadFile(page);
 }
 // The Linux test harness cannot create a Unix-domain singleton socket.
@@ -194,6 +262,7 @@ else {
   app.whenReady().then(() => {
     try {
       store = new Store(app.getPath('userData')); state = store.load();
+      state = Model.rollRecurring(state); state = store.write(state);
       if (process.platform === 'win32') {
         state.settings.launchOnStartup = app.getLoginItemSettings({ path:process.execPath, args:['--startup'] }).openAtLogin;
       }
@@ -209,14 +278,18 @@ else {
       reminderTimer = setInterval(notifyDue, 30000);
       setTimeout(notifyDue, 4000);
       powerMonitor.on('resume', notifyDue);
-      screen.on('display-removed', () => { win.setBounds(visibleBounds(win.getBounds(), collapsed)); });
+      const recoverDisplay = () => {
+        if (tucked) { const area = screen.getDisplayMatching(win.getBounds()).workArea; win.setBounds(Layout.edgeBounds(win.getBounds(), area, edgeSide)); }
+        else win.setBounds(visibleBounds(win.getBounds(), collapsed));
+      };
+      screen.on('display-removed', recoverDisplay); screen.on('display-metrics-changed', recoverDisplay);
     } catch(error) {
       fatal = true; log(error); dialog.showErrorBox('轻单暂时无法启动', error.message); app.quit();
     }
   }).catch(error => { dialog.showErrorBox('轻单启动失败', String(error)); app.quit(); });
   app.on('before-quit', () => {
     if (quitting) return;
-    clearTimeout(boundsTimer); clearInterval(reminderTimer);
+    clearTimeout(boundsTimer); clearTimeout(tuckTimer); clearTimeout(awayTimer); clearInterval(reminderTimer);
     if (state && store && !fatal) { captureBounds(); try { store.write(state); } catch(error) { log(error); } }
     quitting = true; globalShortcut.unregisterAll(); if (tray) tray.destroy();
   });

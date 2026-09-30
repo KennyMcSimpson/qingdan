@@ -9,10 +9,12 @@
 </head>
 <body>
   <div id="app">
-    <header class="titlebar">
+    <div id="edgeView" class="edge-view" hidden><div class="edge-grip" title="拖动标签"></div><button id="edgeOpen" aria-label="展开轻单"><img src="../assets/mark.svg" alt=""><span class="edge-name">轻单</span><span id="edgeCount">0</span><span data-icon="arrow"></span></button></div>
+    <header id="titlebar" class="titlebar">
       <div class="brand"><img src="../assets/mark.svg" alt=""><span>轻单</span><span class="brand-en">QINGDAN</span></div>
       <div class="window-controls">
         <button id="pinButton" class="icon-button" aria-label="取消置顶" title="始终置顶" data-icon="pin"></button>
+        <button id="dockButton" class="icon-button" aria-label="贴边收起" title="贴边收起 · 点击侧边标签展开" data-icon="dock"></button>
         <button id="collapseButton" class="icon-button" aria-label="收成小条" title="收成小条" data-icon="collapse"></button>
         <button id="hideButton" class="icon-button" aria-label="收进托盘" title="收进托盘 · Ctrl+Alt+Q 唤回" data-icon="minus"></button>
       </div>
@@ -20,18 +22,20 @@
     <button id="compactView" class="compact-view" aria-label="展开清单" hidden><span class="compact-dot"></span><span class="compact-content"><strong id="compactTitle"></strong><span id="compactMeta"></span></span><span class="compact-arrow" data-icon="expand"></span></button>
     <div id="fullView">
       <section class="intro">
-        <div class="eyebrow"><span id="todayDate"></span><span class="live-dot"></span><span>给自己留点余地</span></div>
-        <div class="intro-heading"><h1>一件一件，慢慢来。</h1><button id="searchButton" class="icon-button" title="搜索 · Ctrl+F" aria-label="搜索" data-icon="search"></button></div>
+        <div class="eyebrow"><span id="todayDate"></span><span class="live-dot"></span><span>你的桌边清单</span></div>
+        <div class="intro-heading"><h1>留在桌边，放在心上。</h1><button id="searchButton" class="icon-button" title="搜索 · Ctrl+F" aria-label="搜索" data-icon="search"></button></div>
         <div class="summary"><span><strong id="activeCount">0</strong> 件待办</span><span class="summary-separator">/</span><span id="nearSummary">把重要的事，留在桌边</span></div>
       </section>
       <nav class="tabs" aria-label="清单分类">
         <button class="tab active" data-tab="all">全部 <span id="countAll">0</span></button>
         <button class="tab" data-tab="ddl">DDL <span id="countDdl">0</span></button>
+        <button class="tab" data-tab="repeat">循环 <span id="countRepeat">0</span></button>
         <button class="tab" data-tab="sticky">常驻 <span id="countSticky">0</span></button>
         <button class="tab" data-tab="done">完成 <span id="countDone">0</span></button>
       </nav>
       <div id="searchRow" class="search-row" hidden><span data-icon="search"></span><input id="searchInput" type="search" placeholder="搜标题，也搜备注…" autocomplete="off" aria-label="搜索待办"><button id="searchClose" class="icon-button" aria-label="关闭搜索" data-icon="x"></button></div>
       <div id="recoveryNotice" class="notice" hidden></div>
+      <section id="stickyShelf" class="sticky-shelf" aria-label="顶部常驻提醒" hidden><div class="shelf-heading"><button id="stickyToggle" aria-expanded="true"><span data-icon="pin"></span><strong>常驻提醒</strong><span id="shelfCount"></span><span id="shelfChevron" data-icon="collapse"></span></button><button id="addSticky" class="icon-button" title="添加常驻提醒" aria-label="添加常驻提醒" data-icon="plus"></button></div><div id="shelfBody"><div id="stickyItems"></div><button id="viewSticky" class="shelf-more" hidden>查看全部常驻提醒 <span data-icon="arrow"></span></button></div></section>
       <main id="listArea" tabindex="-1" aria-label="待办列表">
         <div id="taskList"></div>
         <div id="emptyState" class="empty-state" hidden>
@@ -43,7 +47,7 @@
       </main>
       <div id="deadlineLegend" class="legend" hidden><span><i class="soon-dot"></i>临近</span><span><i class="urgent-dot"></i>紧急</span><span><i class="overdue-dot"></i>逾期</span><span class="legend-auto">随时间自动变色</span></div>
       <form id="quickForm" class="quick-add"><span data-icon="plus"></span><input id="quickInput" maxlength="160" autocomplete="off" placeholder="写下一件事，回车记下…" aria-label="快速添加待办"><button id="detailAdd" type="button" class="icon-button" title="添加 DDL / 备注" aria-label="详细添加" data-icon="sliders"></button></form>
-      <footer class="footer"><span id="saveStatus"><i></i>已保存在本机</span><div><button id="undoButton" class="icon-button" title="撤销上一步 · Ctrl+Z" aria-label="撤销上一步" data-icon="undo" disabled></button><button id="settingsButton" class="icon-button" title="设置" aria-label="设置" data-icon="settings"></button></div></footer>
+      <footer class="footer"><span id="saveStatus"><i></i>已保存在本机</span><div><button id="quietButton" class="icon-button" title="暂时隐藏 15 分钟 · 可随时从托盘唤回" aria-label="暂时隐藏 15 分钟" data-icon="quiet"></button><button id="undoButton" class="icon-button" title="撤销上一步 · Ctrl+Z" aria-label="撤销上一步" data-icon="undo" disabled></button><button id="settingsButton" class="icon-button" title="设置" aria-label="设置" data-icon="settings"></button></div></footer>
     </div>
     <div id="toast" class="toast" role="status" hidden><span id="toastText"></span><button id="toastUndo">撤销</button><button id="toastClose" aria-label="关闭提示" data-icon="x"></button></div>
   </div>
@@ -58,10 +62,12 @@
         <div class="field-label note-label"><label for="taskNote">要注意什么</label><span>选填</span></div>
         <textarea id="taskNote" placeholder="细节、材料、别忘了的事…" maxlength="5000" rows="3"></textarea>
         <div id="ddlControls" class="ddl-controls">
-          <div class="label-row"><span class="field-label">截止时间</span><label class="switch"><input id="hasDue" type="checkbox" aria-label="设置截止时间"><span></span></label></div>
+          <div class="repeat-line"><label for="repeatSelect" class="field-label"><span data-icon="repeat"></span>重复</label><select id="repeatSelect"><option value="">不重复</option><option value="daily">每天</option><option value="weekdays">工作日 · 周一至周五</option><option value="weekly">每周 · 按所选日期的星期</option></select></div>
+          <div class="label-row"><span id="dueLabel" class="field-label">截止时间</span><label class="switch"><input id="hasDue" type="checkbox" aria-label="设置截止时间"><span></span></label></div>
           <div id="dateFields" hidden><div class="date-inputs"><input id="dueDate" type="date" aria-label="截止日期"><input id="dueTime" type="time" aria-label="截止时刻" value="23:59"></div><div class="date-shortcuts"><button type="button" data-days="0">今天</button><button type="button" data-days="1">明天</button><button type="button" data-days="7">一周后</button><span>本机时间</span></div><p id="duePreview" class="due-preview"></p></div>
+          <p id="repeatHint" class="repeat-hint" hidden>到指定时刻提醒一次，完成后自动进入下一次。<br>新周期自动更新，错过的不会堆积；程序运行时有效。</p>
         </div>
-        <div id="stickyHint" class="sticky-hint" hidden><span data-icon="leaf"></span><p>一直挂着，偶尔看一眼。<br><span>没有截止时间，直到你手动归档。</span></p></div>
+        <div id="stickyHint" class="sticky-hint" hidden><span data-icon="leaf"></span><p>固定在清单顶部，随时看一眼。<br><span>没有截止时间，直到你手动归档。</span></p></div>
         <label class="important-label"><span><span data-icon="star"></span>标为重要</span><input id="taskImportant" type="checkbox"><span class="checkbox-visual"></span></label>
         <p id="editorError" class="form-error" role="alert" hidden></p>
       </div>
@@ -75,9 +81,9 @@
       <p id="settingsError" class="form-error" role="alert" hidden></p>
       <section class="settings-section"><h3>外观</h3><div class="theme-picker"><button data-theme="paper"><span class="theme-swatch paper-swatch"></span>暖纸</button><button data-theme="dark"><span class="theme-swatch dark-swatch"></span>夜色</button></div><div class="setting-line"><label>一点颜色</label><div class="accent-picker"><button data-accent="sage" aria-label="鼠尾草绿"></button><button data-accent="blue" aria-label="雾蓝"></button><button data-accent="rose" aria-label="豆沙"></button></div></div><div class="setting-line opacity-line"><label for="opacityRange">不透明度 <span id="opacityValue">100%</span></label><input id="opacityRange" type="range" min="80" max="100" step="5"></div></section>
       <section class="settings-section"><h3>DDL 会自己变色</h3><div class="setting-line"><label for="warnDays"><i class="soon-dot"></i>临近预警</label><select id="warnDays"><option value="1">提前 1 天</option><option value="3">提前 3 天</option><option value="7">提前 7 天</option><option value="14">提前 14 天</option></select></div><div class="setting-line"><label for="urgentHours"><i class="urgent-dot"></i>紧急预警</label><select id="urgentHours"><option value="6">提前 6 小时</option><option value="12">提前 12 小时</option><option value="24">提前 24 小时</option></select></div><div class="setting-line"><span><i class="overdue-dot"></i>超过截止时间</span><span class="muted">自动变红</span></div><div class="setting-line"><label for="reminders">到期提醒 <small>紧急、逾期时，运行中提醒一次</small></label><label class="switch"><input id="reminders" type="checkbox"><span></span></label></div></section>
-      <section class="settings-section"><h3>桌边的习惯</h3><div class="setting-line"><label for="alwaysOnTop">始终置顶</label><label class="switch"><input id="alwaysOnTop" type="checkbox"><span></span></label></div><div class="setting-line"><label for="launchOnStartup">开机启动 <small>请先将程序放在固定文件夹</small></label><label class="switch"><input id="launchOnStartup" type="checkbox"><span></span></label></div><p id="shortcutHint" class="settings-hint">Ctrl + Alt + Q 唤回 / 隐藏 · Ctrl + N 新建</p></section>
+      <section class="settings-section"><h3>桌边的习惯</h3><div class="setting-line"><label for="autoTuck">不用时自动贴边 <small>切到其他窗口后收起，点击标签展开</small></label><label class="switch"><input id="autoTuck" type="checkbox"><span></span></label></div><div class="setting-line"><label for="alwaysOnTop">展开时始终置顶</label><label class="switch"><input id="alwaysOnTop" type="checkbox"><span></span></label></div><div class="setting-line"><label for="launchOnStartup">开机启动 <small>从侧边标签启动；请放在固定文件夹</small></label><label class="switch"><input id="launchOnStartup" type="checkbox"><span></span></label></div><p id="shortcutHint" class="settings-hint">Ctrl + Alt + Q 唤回 / 隐藏 · Ctrl + N 新建</p></section>
       <section class="settings-section"><h3>数据与备份</h3><p class="settings-hint">自动保存在这台电脑。导出备份后，可以带去另一台电脑继续用。</p><div class="backup-actions"><button id="exportButton" class="secondary-button"><span data-icon="export"></span>导出备份</button><button id="importButton" class="secondary-button"><span data-icon="import"></span>恢复备份</button></div><button id="folderButton" class="text-button">打开数据文件夹 <span data-icon="arrow"></span></button><button id="clearButton" class="text-button muted">清理已完成的记录</button></section>
-      <div class="about"><img src="../assets/mark.svg" alt=""><div><strong>轻单 1.0</strong><span>轻一点，把重要的事留在桌边。</span></div></div><button id="quitButton" class="text-button muted quit-button">完全退出轻单</button>
+      <div class="about"><img src="../assets/mark.svg" alt=""><div><strong>轻单 1.1</strong><span>轻一点，把重要的事留在桌边。</span></div></div><button id="quitButton" class="text-button muted quit-button">完全退出轻单</button>
     </div>
   </dialog>
   <script src="model.js"></script>

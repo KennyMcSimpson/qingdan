@@ -13,8 +13,9 @@ const file = ResEdit.Data.IconFile.from(fs.readFileSync(icon));
 const groups = ResEdit.Resource.IconGroupEntry.fromEntries(res.entries);
 for (const group of groups) ResEdit.Resource.IconGroupEntry.replaceIconsForResource(res.entries,group.id,group.lang,file.icons.map(i=>i.data));
 const versions = ResEdit.Resource.VersionInfo.fromEntries(res.entries);
+const version = JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8')).version.split('.').map(Number);
 for (const v of versions) {
-  v.setFileVersion(1,0,0,0,1033); v.setProductVersion(1,0,0,0,1033);
+  v.setFileVersion(...version,0,1033); v.setProductVersion(...version,0,1033);
   v.setStringValues({lang:1033,codepage:1200},{ FileDescription:'轻单 · 桌边待办', ProductName:'轻单 Qingdan', CompanyName:'Qingdan', InternalName:'Qingdan', OriginalFilename:'Qingdan.exe', LegalCopyright:'Copyright (c) 2026 Qingdan contributors. MIT License.' });
   v.outputToResourceEntries(res.entries);
 }

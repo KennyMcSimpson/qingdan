@@ -68,7 +68,8 @@ for file in sorted(folder.rglob('*')):
     if file.is_file():
         manifest[file.relative_to(folder).as_posix()] = hashlib.sha256(file.read_bytes()).hexdigest()
 (folder / 'SHA256-MANIFEST.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False),encoding='utf-8')
-archive = out / '轻单_Windows_便携版.zip'
+app_version = json.loads((ROOT / 'package.json').read_text())['version']
+archive = out / f'Qingdan-{app_version}-windows-x64.zip'
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
     for file in sorted(folder.rglob('*')):
         if file.is_file():
@@ -76,4 +77,6 @@ with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
 with zipfile.ZipFile(archive) as z:
     if z.testzip() is not None:
         raise RuntimeError('ZIP CRC check failed')
-print(json.dumps({'archive':str(archive),'size_bytes':archive.stat().st_size,'files':len(manifest),'runtime_sha256':actual},ensure_ascii=False))
+archive_sha256 = hashlib.sha256(archive.read_bytes()).hexdigest()
+(out / 'SHA256SUMS.txt').write_text(archive_sha256 + '  ' + archive.name + '\n',encoding='utf-8')
+print(json.dumps({'archive':str(archive),'size_bytes':archive.stat().st_size,'files':len(manifest),'runtime_sha256':actual,'archive_sha256':archive_sha256},ensure_ascii=False))

@@ -1,8 +1,8 @@
 {
   "name": "qingdan",
   "productName": "轻单",
-  "version": "1.0.0",
-  "description": "A quiet floating to-do list for Windows, with color-coded deadlines and persistent reminders. / 轻单：Windows 悬浮待办与 DDL 提醒。",
+  "version": "1.1.0",
+  "description": "A floating Windows to-do list with recurring reminders, color-coded deadlines and an unobtrusive edge tab. / 轻单：循环提醒、DDL 变色与贴边悬浮清单。",
   "main": "src/main.js",
   "private": true,
   "license": "MIT",
