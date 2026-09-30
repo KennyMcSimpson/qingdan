@@ -21,9 +21,9 @@ p.add_argument('--checksums', required=True)
 p.add_argument('--out', default=str(ROOT / 'release'))
 args = p.parse_args()
 runtime = Path(args.runtime)
-version = json.loads((ROOT / 'package.json').read_text())['devDependencies']['electron']
+version = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['devDependencies']['electron']
 expected_name = f'electron-v{version}-win32-x64.zip'
-checksum_lines = Path(args.checksums).read_text().splitlines()
+checksum_lines = Path(args.checksums).read_text(encoding='utf-8-sig').splitlines()
 expected = next(line.split()[0] for line in checksum_lines if line.split()[-1].lstrip('*') == expected_name)
 actual = hashlib.sha256(runtime.read_bytes()).hexdigest()
 if expected != actual:
@@ -68,7 +68,7 @@ for file in sorted(folder.rglob('*')):
     if file.is_file():
         manifest[file.relative_to(folder).as_posix()] = hashlib.sha256(file.read_bytes()).hexdigest()
 (folder / 'SHA256-MANIFEST.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False),encoding='utf-8')
-app_version = json.loads((ROOT / 'package.json').read_text())['version']
+app_version = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
 archive = out / f'Qingdan-{app_version}-windows-x64.zip'
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
     for file in sorted(folder.rglob('*')):

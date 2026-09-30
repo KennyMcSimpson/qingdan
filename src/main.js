@@ -28,7 +28,7 @@ function broadcast() { if (win && !win.isDestroyed()) win.webContents.send('stat
 function commit(next, undoable = false) {
   const previous = state;
   const clean = store.write(next);
-  if (undoable) { archive.push(structuredClone(previous.tasks)); if (archive.length > 30) archive.shift(); }
+  if (undoable) { archive.push(structuredClone({tasks:previous.tasks,notices:previous.notices})); if (archive.length > 30) archive.shift(); }
   state = clean;
   try { store.snapshot(state); } catch (error) { log(error); }
   broadcast(); updateTray(); return payload();
@@ -201,8 +201,8 @@ function bindIPC() {
     if (action.type === 'settings') return updateSettings(action.settings);
     if (action.type === 'undo') {
       if (!archive.length) return payload();
-      const tasks = archive[archive.length - 1];
-      const next = { ...state, tasks, notices:{} };
+      const previous = archive[archive.length - 1];
+      const next = { ...state, tasks:previous.tasks, notices:previous.notices };
       state = store.write(next); archive.pop(); broadcast(); updateTray(); return payload();
     }
     return commit(Model.apply(state, action, crypto.randomUUID), true);

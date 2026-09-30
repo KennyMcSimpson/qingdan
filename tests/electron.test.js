@@ -120,7 +120,7 @@ async function main() {
     await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:388,height:660}));
     await page.locator('[data-tab=repeat]').click();await page.locator('#quickInput').fill('每天整理桌面');await page.locator('#quickInput').press('Enter');
     assert.equal(await page.locator('#repeatSelect').inputValue(),'daily');assert.equal(await page.locator('#hasDue').isDisabled(),true);
-    await page.locator('#dueTime').fill('21:30');await shot('recurring-editor');await page.locator('#saveTask').click();
+    await page.locator('#dueTime').fill('21:30');await page.locator('#editorHeading').click();await shot('recurring-editor');await page.locator('#saveTask').click();
     let t=(await state()).tasks.find(t=>t.title==='每天整理桌面'&&t.repeat);assert.equal(t.repeat,'daily');assert.equal(new Date(t.dueAt).getHours(),21);assert.equal(new Date(t.dueAt).getMinutes(),30);
     const old=t.dueAt;await page.getByRole('button',{name:'标记完成：每天整理桌面',exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('#countDone').textContent==='1');
@@ -172,12 +172,13 @@ async function main() {
     } finally {await desktop.evaluate(()=>{globalThis.setTimeout=globalThis.qingdanOriginalTimeout;delete globalThis.qingdanOriginalTimeout;});}
   });
   await check('final layout remains usable at minimum size with a full shelf',async()=>{
+    await page.evaluate(()=>document.querySelector('#toast').hidden=true);
     await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:340,height:420}));
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
     const list=await page.locator('#listArea').boundingBox();assert.ok(list.height>=65);await shot('minimum-with-shelf');
     await page.locator('[data-tab=repeat]').click();await page.getByRole('button',{name:'编辑：每天整理桌面',exact:true}).click();
     const save=await page.locator('#saveTask').boundingBox();assert.ok(save.y>=0&&save.y+save.height<=420);await shot('minimum-recurring-editor');await page.locator('.close-editor').click();
-    await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:388,height:660}));await page.locator('[data-tab=all]').click();await shot('v1.1-paper');
+    await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:388,height:840}));await page.locator('[data-tab=all]').click();await shot('v1.1-paper');
     await action({type:'settings',settings:{theme:'dark'}});await shot('v1.1-dark');await action({type:'settings',settings:{theme:'paper'}});
   });
   assert.deepEqual(errors,[]);
