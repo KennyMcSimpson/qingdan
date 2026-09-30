@@ -83,12 +83,12 @@ function setTucked(value) {
       captureBounds();
       const b = win.getBounds(), area = screen.getDisplayMatching(b).workArea;
       edgeSide = Layout.nearestEdge(b, area); tucked = true;
-      win.setMinimumSize(46,164); win.setMaximumSize(46,164); win.setResizable(false);
+      win.setMinimumSize(46,164); win.setMaximumSize(46,164);
       win.setBounds(Layout.edgeBounds(b, area, edgeSide)); win.setAlwaysOnTop(true);
     } else {
       const edge = win.getBounds(), area = screen.getDisplayMatching(edge).workArea;
       tucked = false;
-      win.setMinimumSize(340,collapsed ? 132 : 420); win.setMaximumSize(700,collapsed ? 132 : 1100); win.setResizable(true);
+      win.setMaximumSize(700,collapsed ? 132 : 1100); win.setMinimumSize(340,collapsed ? 132 : 420);
       const width = normalBounds.width;
       const b = { ...normalBounds, x: edgeSide === 'left' ? area.x + 8 : area.x + area.width - width - 8,
         y: edge.y, height: collapsed ? 132 : normalHeight };

@@ -143,7 +143,8 @@ async function main() {
     await page.locator('#dockButton').click();await page.waitForFunction(()=>!document.querySelector('#edgeView').hidden);
     const b=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());assert.equal(b.width,46);assert.equal(b.height,164);
     assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isAlwaysOnTop()),true);await shot('edge');
-    await page.locator('#edgeOpen').click();const after=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());assert.equal(after.width,before.width);assert.equal(after.height,before.height);
+    await page.locator('#edgeOpen').click();await page.waitForFunction(()=>document.querySelector('#edgeView').hidden);
+    const after=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());assert.equal(after.width,before.width);assert.equal(after.height,before.height);
     assert.equal(await page.locator('#fullView').isVisible(),true);
   });
   await check('blur tucks the native window but an open editor protects unsaved input',async()=>{
