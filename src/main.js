@@ -39,6 +39,12 @@ function captureBounds() {
   if (!tucked) {
     if (!collapsed) normalHeight = b.height;
     normalBounds = { ...b, height: normalHeight };
+  } else {
+    const area = screen.getDisplayMatching(b).workArea;
+    edgeSide = Layout.nearestEdge(b,area);
+    const snapped = Layout.edgeBounds(b,area,edgeSide);
+    if (b.x !== snapped.x || b.y !== snapped.y) win.setBounds(snapped);
+    normalBounds = { ...normalBounds, x: edgeSide === 'left' ? area.x + 8 : area.x + area.width - normalBounds.width - 8, y: snapped.y };
   }
   state.window = { ...normalBounds, collapsed, tucked, edgeSide, edgeY: tucked ? b.y : normalBounds.y, expandedHeight: normalHeight };
 }

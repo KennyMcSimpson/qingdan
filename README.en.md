@@ -6,21 +6,22 @@
   <img alt="Offline" src="https://img.shields.io/badge/works-offline-638392?style=flat-square" />
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44.4.5-638392?style=flat-square" />
 </p>
-<p align="center">A quiet, floating task list for your Windows desktop.<br />Capture a task, keep a deadline in sight, and leave room for reminders that stay.</p>
+<p align="center">A floating Windows task list that moves out of your way.<br />Daily routines remind you on time, persistent notes stay at the top, and deadlines change color.</p>
 <p align="center"><a href="https://github.com/KennyMcSimpson/qingdan/releases/latest"><strong>Download for Windows</strong></a> &nbsp; · &nbsp; <a href="#getting-started">Getting started</a> &nbsp; · &nbsp; <a href="https://github.com/KennyMcSimpson/qingdan/issues">Report an issue</a></p>
 
-<p align="center"><img src="docs/images/preview.png" width="900" alt="Paper and Night themes with overdue, urgent, upcoming and persistent reminders" /></p>
+<p align="center"><img src="docs/images/preview.png" width="388" alt="Paper theme with a top reminder shelf, deadlines and recurring tasks" /> &nbsp; <img src="docs/images/dark.png" width="388" alt="The same task list in the Night theme" /></p>
 <p align="center"><sub>Actual application screenshots · Example tasks only · The app interface is currently in Chinese</sub></p>
 
 ## Keep the important things within sight
 
 | Feature | What it does |
 | --- | --- |
-| **A floating desktop window** | Move, resize, keep it on top, or collapse it into a small strip. |
+| **A window that makes room** | Switch away and it tucks into a narrow edge tab. Click to expand; automatic tucking is optional. |
+| **Daily / weekly routines** | Daily, Monday–Friday, or weekly reminders at a chosen time. Completing one occurrence schedules the next. |
 | **Deadlines that change color** | Amber when approaching, orange when urgent, red when overdue. |
-| **Reminders that stay** | Keep long-term goals and things to remember visible without an expiration date. |
+| **A top reminder shelf** | Persistent notes stay above the scrolling tasks. Collapse the shelf or open the full collection. |
 | **Room for the details** | Add notes, flag important tasks, search titles and notes, restore completed tasks. |
-| **Easy to put away** | Hide it in the tray and bring it back with `Ctrl + Alt + Q`. |
+| **Easy to put away** | Compact strip, 15-minute hide, system tray, and `Ctrl + Alt + Q` to bring it back. |
 | **Saved on your computer** | Automatic saves, 30-step undo, JSON backup / restore, daily snapshots. |
 | **A comfortable look** | Paper and Night themes, three accent colors and adjustable opacity. |
 
@@ -28,7 +29,7 @@ No account or cloud service. Your list stays on your own computer.
 
 ## Getting started
 
-1. Open **[Releases](https://github.com/KennyMcSimpson/qingdan/releases/latest)** and download `Qingdan-1.0.0-windows-x64.zip`.
+1. Open **[Releases](https://github.com/KennyMcSimpson/qingdan/releases/latest)** and download `Qingdan-1.1.0-windows-x64.zip`.
 2. Extract the **entire** archive to a permanent folder.
 3. Double-click **`Qingdan.exe`**. Type a task into the bottom input and press Enter.
 
@@ -36,7 +37,15 @@ The runtime is included: **you do not need Node.js or Python** to use the portab
 
 Target platform: **Windows 10 / 11 x64**. The download is about **139 MiB**, including Electron. Your first launch starts with an empty list.
 
-The four tabs are **全部** (All), **DDL** (Deadlines), **常驻** (Persistent reminders), and **完成** (Completed). Click a title to edit; the sliders button beside the bottom input opens the detailed editor. Repository documentation is bilingual; the current app UI is Chinese.
+The five tabs are **全部** (All), **DDL** (One-time deadlines), **循环** (Recurring), **常驻** (Persistent reminders), and **完成** (Completed). Click a title to edit; the sliders button beside the bottom input opens the detailed editor. Repository documentation is bilingual; the current app UI is Chinese.
+
+**Upgrading from 1.0:** export a backup in Settings, quit the old app completely, and extract the full new package to a permanent folder. The same `%APPDATA%\Qingdan` folder retains your tasks, notes, completion status and appearance. If start with Windows is enabled, toggle it off and on from the new app to register its path.
+
+### Set a routine once
+
+Open **循环**, enter a task and press Enter. Choose **每天** (Daily), **工作日** (Monday–Friday), or **每周** (Weekly), then set the first date and local time. For weekly reminders, the selected date determines the weekday.
+
+Each occurrence reminds you once at the chosen time. Completing it records that occurrence and schedules the next. New periods roll forward even without completion, so missed days do not accumulate. Weekdays do not include a public-holiday calendar. Use persistent reminders for notes that should remain visible; use recurring tasks for timed routines.
 
 ### A little color before time runs out
 
@@ -53,6 +62,10 @@ Choose an approaching threshold of **1 / 3 / 7 / 14 days** and an urgent thresho
 Dates use your computer's local time zone. The default time is 23:59 on the selected date. Deadlines are saved as exact instants and displayed in the local time zone when you travel.
 
 ### When you need a little more space
+
+After switching to another window, Qingdan defaults to tucking against the nearest screen edge in about a second, becoming a **46-pixel-wide tab**. The tab displays a count and warning color; click to expand. Editing and native backup dialogs prevent automatic tucking. You can disable it in Settings.
+
+The header dock button tucks immediately. The moon button hides the app for **15 minutes**, then returns only the edge tab. You can recall it sooner from the tray or shortcut.
 
 <p align="center"><img src="docs/images/compact.png" width="404" alt="The compact strip keeps the nearest deadline visible" /></p>
 
@@ -92,9 +105,9 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** for development and packaging. There 
 
 ## Verification and releases
 
-The initial version passed **17 core tests and 17 real Electron interaction checks**. The Windows archive uses a checksum-verified official runtime and passed ZIP CRC checks. See [VALIDATION.md](VALIDATION.md) for the exact scope.
+Core tests cover recurring dates, notification deduplication, legacy data, window geometry and recovery. GitHub Actions runs real Electron interactions on Windows and Linux and builds the portable Windows package. See [VALIDATION.md](VALIDATION.md) for exact results and scope.
 
-Initial UI checks used Electron on Linux. **The application has not yet been exercised on a real Windows 10 / 11 machine.** Tray notifications, startup registration, input methods and multi-monitor DPI still need device feedback. This release is unsigned and has no automatic updater.
+Automation does not replace feedback from every Windows device. Notification policies, startup registration, Chinese input methods and multi-monitor DPI still need local confirmation. This release is unsigned and has no automatic updater.
 
 [Changelog](CHANGELOG.md) · [Feedback](https://github.com/KennyMcSimpson/qingdan/issues)
 

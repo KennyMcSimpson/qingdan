@@ -6,21 +6,22 @@
   <img alt="Offline" src="https://img.shields.io/badge/works-offline-638392?style=flat-square" />
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44.4.5-638392?style=flat-square" />
 </p>
-<p align="center">一个安静地待在桌边的 Windows 悬浮清单。<br />写下待办、记住 DDL，也给长期提醒留一个位置。</p>
+<p align="center">一个会主动让开工作区的 Windows 悬浮清单。<br />每天的小事按时提醒，常驻叮嘱留在顶部，DDL 临近时自己变色。</p>
 <p align="center"><a href="https://github.com/KennyMcSimpson/qingdan/releases/latest"><strong>下载 Windows 便携版</strong></a> &nbsp; · &nbsp; <a href="docs/guide.zh-CN.md">完整使用说明</a> &nbsp; · &nbsp; <a href="https://github.com/KennyMcSimpson/qingdan/issues">反馈问题</a></p>
 
-<p align="center"><img src="docs/images/preview.png" width="900" alt="轻单暖纸与夜色主题：逾期、紧急、临近事项和长期提醒" /></p>
+<p align="center"><img src="docs/images/preview.png" width="388" alt="暖纸主题：顶部常驻提醒、DDL 与每日循环" /> &nbsp; <img src="docs/images/dark.png" width="388" alt="夜色主题：相同的清单和循环提醒" /></p>
 <p align="center"><sub>真实界面截图 · 事项为演示数据 · 应用界面目前为中文</sub></p>
 
 ## 重要的事，抬眼就能看见
 
 | 功能 | 怎么用 |
 | --- | --- |
-| **桌边悬浮窗** | 拖动、调整大小、始终置顶，或者收成一条小小的提醒。 |
+| **会让开的悬浮窗** | 切到其他窗口后自动贴边成小标签，点击展开；可关闭自动贴边。 |
+| **每日 / 每周循环** | 每天、周一至周五或每周，在指定时刻提醒；完成本次自动进入下一次。 |
 | **会变色的 DDL** | 显示剩余时间；临近变琥珀色，紧急变橙色，逾期变红色。 |
-| **长期挂着** | 注意事项、长期目标、不必完成的叮嘱，都有自己的位置。 |
+| **顶部常驻提醒** | 注意事项固定在顶部可折叠区，默认展示两条，一键查看全部。 |
 | **写下细节** | 备注、重要标记、标题和备注搜索、完成后恢复。 |
-| **随时收起** | 收进系统托盘，按 `Ctrl + Alt + Q` 重新唤回。 |
+| **随时收起** | 小条模式、隐藏 15 分钟、系统托盘，按 `Ctrl + Alt + Q` 重新唤回。 |
 | **安心保存** | 自动保存到本机，30 步撤销、JSON 导出 / 恢复、每日快照。 |
 | **舒服一点** | 暖纸 / 夜色两套主题，三种点缀色，不透明度可调。 |
 
@@ -28,13 +29,21 @@
 
 ## 开始使用
 
-1. 打开 **[Releases](https://github.com/KennyMcSimpson/qingdan/releases/latest)**，下载 `Qingdan-1.0.0-windows-x64.zip`。
+1. 打开 **[Releases](https://github.com/KennyMcSimpson/qingdan/releases/latest)**，下载 `Qingdan-1.1.0-windows-x64.zip`。
 2. 将整个压缩包解压到一个固定文件夹。
 3. 双击 **`Qingdan.exe`**。在底部输入一件事，按回车记下来。
 
 运行环境已经包含在包里，**不需要安装 Node.js 或 Python**。请保留 EXE 旁的文件和 `resources` 文件夹，不要只复制一个 EXE。
 
 适用 **Windows 10 / 11 x64**。便携包约 **139 MiB**，包含 Electron 运行环境；首次打开是空清单。
+
+**从 1.0 升级：** 先在设置里导出备份、完全退出旧版，然后把新版完整解压到固定文件夹并运行。清单仍从 `%APPDATA%\Qingdan` 读取，旧待办、备注、完成状态和外观设置会保留；开机启动已开启时，在新版中重新开关一次以更新路径。
+
+### 日常小事，设置一次就好
+
+打开 **循环** 分类，输入一件事并回车。选 **每天 / 工作日 / 每周**，设置首次日期和时间，例如每天 09:00 整理计划、工作日 18:00 记录进度、每周日 20:00 复盘。
+
+到指定时间提醒一次；点完成只完成本次，会保留完成记录并排好下一次。到了新周期，即使上一期没点完成也会自动更新，错过的不会堆积。工作日指周一到周五，不含法定节假日规则。常驻提醒适合一直展示的叮嘱，循环适合需要定时做的事情。
 
 ### 截止时间，会自己变色
 
@@ -48,11 +57,15 @@
 
 设置里可以调整提前 **1 / 3 / 7 / 14 天**预警、提前 **6 / 12 / 24 小时**进入紧急状态。颜色每 15 秒刷新，重新显示窗口时也会更新。日期按本机时区输入，默认截止时刻为当天 23:59。
 
-### 忙的时候，收成一小条
+### 忙的时候，让开工作区
+
+切到其他窗口后，轻单默认在约一秒内贴到最近的屏幕侧边，收成 **46 像素宽的标签**。标签上的数字和颜色提示待办状态，点击展开。正在编辑或使用备份对话框时不会自动收起；设置里可以关闭此行为。
+
+顶部贴边按钮可以立即收起；底部月亮按钮会隐藏 **15 分钟**，到时只恢复侧边标签。期间可随时通过托盘或快捷键唤回。
 
 <p align="center"><img src="docs/images/compact.png" width="404" alt="小条模式，保留最近 DDL 和预警色" /></p>
 
-小条保留最接近截止时间的事项及预警色，点一下即可展开。长期提醒不会随时间消失，需要手动归档。
+如果想持续看到最近的事项，还可以收成小条，保留最近 DDL 及预警色，点一下展开。常驻提醒不会随时间消失，需要手动归档。
 
 | 快捷键 | 操作 |
 | --- | --- |
@@ -87,9 +100,9 @@ npm start
 
 ## 验证与版本
 
-首版通过 **17 项核心测试 + 17 项真实 Electron 窗口操作检查**，Windows ZIP 完成运行包 SHA-256 和压缩包 CRC 校验。详细记录见 [VALIDATION.md](VALIDATION.md)。
+核心测试覆盖循环日期、提醒去重、旧数据兼容、窗口几何和数据恢复；GitHub Actions 在 Windows 与 Linux 中运行真实 Electron 操作检查，并构建 Windows 便携包。详细结果和范围见 [VALIDATION.md](VALIDATION.md)。
 
-初始界面验证在 Linux 的 Electron 窗口中完成，**尚未在 Windows 10 / 11 真机验证**；托盘通知、开机启动、输入法和多显示器 DPI 仍需设备反馈。本版本没有商业代码签名或自动更新器。
+自动化检查不能代替所有 Windows 设备上的使用反馈，托盘通知策略、开机启动、中文输入法和多显示器 DPI 仍需本机确认。本版本没有商业代码签名或自动更新器。
 
 [更新记录](CHANGELOG.md) · [提交反馈](https://github.com/KennyMcSimpson/qingdan/issues)
 

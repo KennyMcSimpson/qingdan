@@ -10,6 +10,7 @@
 | --- | --- |
 | `src/main.js` | 原生窗口、托盘、提醒、IPC / Native window, tray, reminders, IPC |
 | `src/model.js` | 截止分级、校验、状态变更 / Deadline and state logic |
+| `src/layout.js` | 窗口与贴边坐标 / Window and edge-tab geometry |
 | `src/store.js` | 保存、备份、恢复 / Persistence and recovery |
 | `src/renderer.js` | 清单与编辑器交互 / Renderer interactions |
 | `src/styles.css` | 主题和样式 / Themes and styles |
@@ -27,6 +28,8 @@ python scripts/package_windows.py --runtime /path/to/electron-win32-x64.zip --ch
 
 提交时说明问题、改动后的行为及验证方式；中英文文档保持一致，截图使用演示数据。时间、保存、迁移方面的改动需要能防止真实回归的测试。
 
+`desktop.yml` 在 Windows / Linux 中执行真实 Electron 测试，上传截图与测试结果，再用校验过的官方运行包构建 Windows ZIP。只有 `main` 上以 `release:` 开头的提交且两套桌面检查均成功时，才会按 `package.json` 的版本创建 Release；需要对应的 `docs/releases/<version>.md`。普通提交只检查和构建。
+
 ## English
 
 Windows device feedback and focused improvements are welcome. Open an issue to discuss the problem before starting a large feature.
@@ -36,3 +39,5 @@ Use Node.js 24 and npm: `npm ci` installs dependencies, `npm start` launches the
 The table above describes the project layout. For packaging, install Python 3 and Pillow, then download the official Windows x64 Electron ZIP matching the pinned version and its `SHASUMS256.txt`. Run the command above with those file paths. It verifies the runtime checksum before branding the executable, collecting assets and licenses, and checking the completed archive. Keep runtimes, personal lists, logs and release ZIPs out of Git.
 
 Pull requests should explain the problem, resulting behavior and verification. Keep Chinese and English docs aligned; use sample data in screenshots. Date handling, persistence and migration changes should include tests for real regressions.
+
+`desktop.yml` runs native Electron checks on Windows and Linux, retains screenshots and the report, and builds a checksum-verified Windows ZIP. Publishing is restricted to successful `main` pushes whose commit message starts with `release:`. The version comes from `package.json`, with release notes in `docs/releases/<version>.md`. Regular pushes only check and build.
