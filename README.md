@@ -5,6 +5,7 @@
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-648264?style=flat-square" /></a>
   <img alt="Offline" src="https://img.shields.io/badge/works-offline-638392?style=flat-square" />
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44.4.5-638392?style=flat-square" />
+  <a href="https://github.com/KennyMcSimpson/qingdan/actions/workflows/desktop.yml"><img alt="Desktop checks" src="https://github.com/KennyMcSimpson/qingdan/actions/workflows/desktop.yml/badge.svg" /></a>
 </p>
 <p align="center">一个会主动让开工作区的 Windows 悬浮清单。<br />每天的小事按时提醒，常驻叮嘱留在顶部，DDL 临近时自己变色。</p>
 <p align="center"><a href="https://github.com/KennyMcSimpson/qingdan/releases/latest"><strong>下载 Windows 便携版</strong></a> &nbsp; · &nbsp; <a href="docs/guide.zh-CN.md">完整使用说明</a> &nbsp; · &nbsp; <a href="https://github.com/KennyMcSimpson/qingdan/issues">反馈问题</a></p>
@@ -45,6 +46,8 @@
 
 到指定时间提醒一次；点完成只完成本次，会保留完成记录并排好下一次。到了新周期，即使上一期没点完成也会自动更新，错过的不会堆积。工作日指周一到周五，不含法定节假日规则。常驻提醒适合一直展示的叮嘱，循环适合需要定时做的事情。
 
+<p align="center"><img src="docs/images/recurring-editor.png" width="340" alt="循环编辑器：每天、首次日期、提醒时刻与下一次预览" /></p>
+
 ### 截止时间，会自己变色
 
 | 状态 | 默认范围 | 显示 |
@@ -63,7 +66,7 @@
 
 顶部贴边按钮可以立即收起；底部月亮按钮会隐藏 **15 分钟**，到时只恢复侧边标签。期间可随时通过托盘或快捷键唤回。
 
-<p align="center"><img src="docs/images/compact.png" width="404" alt="小条模式，保留最近 DDL 和预警色" /></p>
+<p align="center"><img src="docs/images/edge.png" width="46" alt="贴边标签" /> &nbsp; <img src="docs/images/compact.png" width="388" alt="小条模式，保留最近 DDL 和预警色" /></p>
 
 如果想持续看到最近的事项，还可以收成小条，保留最近 DDL 及预警色，点一下展开。常驻提醒不会随时间消失，需要手动归档。
 
@@ -100,7 +103,7 @@ npm start
 
 ## 验证与版本
 
-核心测试覆盖循环日期、提醒去重、旧数据兼容、窗口几何和数据恢复；GitHub Actions 在 Windows 与 Linux 中运行真实 Electron 操作检查，并构建 Windows 便携包。详细结果和范围见 [VALIDATION.md](VALIDATION.md)。
+**29 项核心测试、Windows / Linux 各 23 项真实 Electron 操作检查通过。** 覆盖循环日期、提醒去重、旧数据兼容、窗口几何和数据恢复；GitHub Actions 校验官方运行包并构建 Windows 便携版。详细结果和范围见 [VALIDATION.md](VALIDATION.md)。
 
 自动化检查不能代替所有 Windows 设备上的使用反馈，托盘通知策略、开机启动、中文输入法和多显示器 DPI 仍需本机确认。本版本没有商业代码签名或自动更新器。
 

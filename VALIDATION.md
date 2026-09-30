@@ -1,33 +1,52 @@
-# 轻单 1.0 验证记录
+# 轻单 1.1 验证记录 / Verification
 
-日期：2026-09-27（北京时间）。
+日期 / Date：2026-09-30。应用 / App：1.1.0，Electron 44.4.5。
 
-## 核心逻辑：17 项通过
+## 核心逻辑 / Core logic — 29 项通过
 
-运行 `node --test tests/core.test.js`，覆盖 DDL 各阈值边界、自定义阈值、长期提醒 / 已完成排除、时间文本、增删改与恢复、切换提醒类型、非法输入与备份版本校验、设置校验、分组与搜索、提醒去重、中文多行数据保存、主文件损坏恢复、缺失主文件恢复、双文件异常时保留数据、原子替换失败时保留原文件，以及恢复前快照。
+本地及 GitHub Actions 的 Windows、Linux 中运行核心测试。覆盖：
 
-## 真实 Electron 窗口：17 项通过
+- DDL 的准确阈值、预警颜色、自定义范围与剩余时间。
+- 增删改、完成 / 恢复、查询、类型转换、非法输入和设置白名单。
+- 日循环、工作日跳过周末、周循环、提前完成、错过多期的更新、提醒时刻与每期去重。
+- 跨月及夏令时的本机日历运算；1.0 数据、备注、完成状态与外观设置的兼容。
+- 负坐标副屏、贴边尺寸、显示器移除后的可达窗口位置。
+- 中文多行 JSON、原子写入失败保留、损坏文件恢复、异常数据保留和快照。
 
-实际启动 Electron 44.4.5 的原生窗口，在 Linux + Xvfb 中通过 Playwright 操作界面及真实 IPC。无渲染进程 JavaScript 错误。
+The 29 checks cover deadlines, state transitions, recurring calendars, once-per-occurrence reminders, legacy data, edge geometry, atomic saves and recovery.
 
-已检查：空清单启动、中文回车添加、输入法组合事件保护、DDL / 备注 / 重要标记编辑、长期提醒归档与恢复、完成与撤销、编辑 / 删除 / 撤销、备注搜索、类似 HTML 的用户文本保持纯文本、主题与阈值保存、原生窗口置顶状态、折叠与展开尺寸恢复、真正退出后重启恢复数据、导出 / 确认导入 / 撤销、隐藏及关闭后应用仍存活、三种预警状态显示，以及 340×420 最小窗口与长中文标题布局。
+## 原生 Electron 窗口 / Native Electron — 每个平台 23 项通过
 
-备份测试使用实际读写和 IPC，测试中预设原生文件对话框的选择结果；不把对话框自动化与 Windows 真机点击等同。输入法测试合成了 composition 事件，尚未覆盖所有 Windows 输入法。
+[验证运行](https://github.com/KennyMcSimpson/qingdan/actions/runs/36710181986)：Windows runner（Windows Server 2025）和 Ubuntu + Xvfb 分别启动实际 Electron，使用真实 IPC 和临时测试数据；两边均无 renderer JavaScript 错误。
 
-## 外观检查
+原始结果：[Windows](docs/validation/windows-1.1.0.json) · [Linux](docs/validation/linux-1.1.0.json)。
 
-已截图检查暖纸、夜色、编辑页、设置页、小条、空清单及最小窗口。各处无横向溢出；小尺寸编辑页的内容区域可滚动，保存按钮固定可见。
+覆盖空清单、中文回车 / 输入法组合事件保护、DDL 与备注、常驻归档、完成 / 撤销、删除 / 恢复、文本搜索、HTML 形状文本保持纯文本、主题保存、原生置顶、折叠尺寸、退出重启、导出 / 确认导入 / 撤销、隐藏后可唤回、DDL 颜色、循环编辑 / 完成本次 / 撤销、顶部常驻区、原生 46×164 贴边窗口与展开恢复、失焦自动收起与编辑保护、短时隐藏与提前唤回，以及 340×420 最小布局。
 
-## Windows 打包检查
+The same 23 interactions pass on both runners with real windows and IPC. Reports list each check. Native focus changes exercise automatic tucking; an open editor retains unsaved input. The minimum-size list keeps usable space and the editor's save button stays inside the window.
 
-基于官方 Windows x64 Electron 运行包；打包前对照官方发布的 `SHASUMS256.txt` 验证 SHA-256。Windows EXE 的图标、产品名称、版本资源已写入并重新解析检查。最终 ZIP 执行完整 CRC 检查，文件清单及逐文件 SHA-256 收录于 `SHA256-MANIFEST.json`。
+备份检查预设原生文件对话框的选择结果，随后执行真实文件读写、IPC 与确认流程。输入法检查合成 composition 事件。隐藏计时检查将测试时钟缩短，不等待 15 分钟。
 
-应用运行资源、源码、说明以及 Electron / Chromium 许可证均包含在包内。正式包不含测试数据，不依赖用户本地安装开发环境。
+Backup checks stub file selections, then exercise actual file I/O and IPC. IME checks synthesize composition events. The temporary-hide test shortens its timer.
 
-## 尚未实机验证的部分
+## 外观 / Visual inspection
 
-当前环境为 Linux，尚未在 Windows 10 / 11 真机启动，因此不能称作已经完成 Windows 全平台验收。Windows 开机启动注册、系统托盘通知、单实例唤回、全局快捷键冲突、中文输入法差异、多显示器与高 DPI 显示仍需在用户机器上确认。
+逐张检查 Windows 实际截图：暖纸、夜色、循环编辑器、顶部常驻区、贴边标签、小条与最小窗口。截图使用演示记录；正式包首次运行不预置任务。清单较长时滚动，常驻区保留在顶部；小窗口中压缩标题区、限制常驻区高度，避免挤没任务列表。
 
-Linux 容器中不支持单实例锁所需的 Unix 域套接字；测试模式仅跳过这一 Linux 锁。Windows 生产路径始终保留单实例检查。
+Actual Windows screenshots were inspected. Long lists scroll while the shelf stays above them. Small windows use a compact header and a bounded shelf.
 
-系统提醒依赖进程运行及 Windows 通知策略。完全退出或电脑关机时不会定时唤醒程序。应用没有代码签名和自动更新器。
+## Windows 打包 / Packaging
+
+CI 构建前对照官方发布的 SHASUMS256.txt 校验 Windows x64 Electron ZIP。运行包 SHA-256：`11c395820a5aaa8ebcc0686b476d0ac98a730274ebfbdc8cf5538a7c2815cb5d`。
+
+品牌 EXE 的图标、产品名称及 1.1.0 版本资源由构建脚本写入并重新解析；应用数据不在分发包内。运行环境、源码、说明和 Electron / Chromium 许可证保留。ZIP 执行完整 CRC 检查，逐文件哈希在包内 SHA256-MANIFEST.json，下载文件哈希随 Release 提供。
+
+The portable build verifies the official runtime checksum, brands the executable, retains licenses, runs a full ZIP CRC check, and emits file and archive checksums. End users do not need development tools.
+
+## 实际范围 / Remaining device checks
+
+Windows 自动化使用托管 Windows Server，不等同于所有 Windows 10 / 11 电脑上的验收。系统通知是否显示、开机启动注册、全局快捷键冲突、真实中文输入法、节假日需求、多显示器高 DPI 仍需具体设备反馈。
+
+Windows automation uses a hosted Server desktop. It does not establish acceptance on every Windows 10 / 11 device. Notification policies, startup, shortcuts, actual IMEs and multi-monitor DPI need device feedback.
+
+循环提醒依赖进程运行和本机时间；退出 / 关机后不唤醒。工作日仅为周一至周五。没有商业代码签名或自动更新器。Linux 测试模式仅跳过容器无法使用的单实例锁；Windows 生产路径始终启用单实例锁。

@@ -6,7 +6,7 @@
 - [Dayboard](https://github.com/FlameFront-end/dayboard)：小型桌面任务板和本地保存。
 - [Desktop Tasks Widget](https://github.com/tanxestudio/Windows-desktop-Tasks-Widget)：桌面窗口、优先级、截止日期与托盘设置。
 
-官方技术资料：
+1.1 交互参考：
 
 1.1 的日常使用改进还参考了以下官方产品说明，只借鉴交互，不复制代码或视觉资源：
 
@@ -14,6 +14,8 @@
 - [TickTick for Windows](https://www.ticktick.com/windows)：桌面便签与小窗。轻单采用顶部常驻区和可点击的贴边标签。
 
 The 1.1 update draws interaction ideas from Todoist's recurring dates and TickTick's desktop sticky notes / mini window. The schedules, shelf, and edge-tab behavior are independently implemented; no product code or artwork is copied.
+
+官方技术资料：
 
 - [Electron BrowserWindow](https://www.electronjs.org/docs/latest/api/browser-window)
 - [Electron security](https://www.electronjs.org/docs/latest/tutorial/security)

@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-30T11:43:08.650Z",
+  "environment": "Real Electron on linux",
+  "passed": 23,
+  "checks": [
+    "empty window opens without renderer errors",
+    "quick add accepts Chinese and Enter",
+    "IME composition does not accidentally submit a half-finished title",
+    "detail editor saves DDL, notes, and importance",
+    "permanent reminders have no deadline and can be archived and restored",
+    "completion and undo persist immediately",
+    "edit, delete and undo retain full note content",
+    "search matches note text",
+    "HTML-like task text remains inert",
+    "appearance and threshold changes are persisted",
+    "always-on-top uses the native window property",
+    "collapse preserves expanded geometry and highlights nearest DDL",
+    "restart restores tasks, local DDL time, and settings",
+    "backup export and confirmed import go through native IPC with undo",
+    "hide and close retain a reachable live application",
+    "deadline groups visibly show overdue, urgent, and upcoming colors",
+    "minimum-size window and long Chinese content do not overflow horizontally",
+    "recurring editor saves a chosen time and completes only the current occurrence",
+    "permanent reminders are above the scrollable tasks and the shelf is bounded",
+    "edge mode uses a narrow native window and restores full geometry",
+    "blur tucks the native window but an open editor protects unsaved input",
+    "temporary hide returns as a tab and manual recall cancels the timer",
+    "final layout remains usable at minimum size with a full shelf"
+  ],
+  "rendererErrors": []
+}

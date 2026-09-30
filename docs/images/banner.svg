@@ -7,6 +7,6 @@
 <text x="150" y="100" fill="#344333" font-size="47" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-weight="650">轻单 <tspan fill="#648264" font-size="40" font-weight="400">Qingdan</tspan></text>
 <text x="69" y="181" fill="#344333" font-size="33" font-family="Segoe UI,Arial,sans-serif" font-weight="500">Keep the important things within sight.</text>
 <text x="71" y="222" fill="#7a8872" font-size="23" font-family="Microsoft YaHei,sans-serif" letter-spacing="2">把重要的事留在桌边。</text>
-<text x="72" y="278" fill="#8d9885" font-size="13" font-family="Segoe UI,Arial,sans-serif" letter-spacing="2">FLOATING TASKS / COLOR-CODED DEADLINES / OFFLINE</text>
+<text x="72" y="278" fill="#8d9885" font-size="13" font-family="Segoe UI,Arial,sans-serif" letter-spacing="2">DAILY ROUTINES / TOP REMINDER SHELF / EDGE TAB / OFFLINE</text>
 <path d="M999 247h81l-10 56h-61Z" fill="#cbd6bf"/><path d="M1041 249c-5-40 1-70 24-104" fill="none" stroke="#7b9673" stroke-width="4" stroke-linecap="round"/><path d="M1043 219c-29 2-49-15-51-35 30-3 53 12 51 35Z" fill="#8da584"/><path d="M1050 194c0-26 24-44 52-39-3 29-23 47-52 39Z" fill="#a5b795"/><path d="M1063 165c-17-15-20-32-10-47 24 13 27 31 10 47Z" fill="#b6c5a6"/>
 </svg>

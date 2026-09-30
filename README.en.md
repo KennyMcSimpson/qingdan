@@ -5,6 +5,7 @@
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-648264?style=flat-square" /></a>
   <img alt="Offline" src="https://img.shields.io/badge/works-offline-638392?style=flat-square" />
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44.4.5-638392?style=flat-square" />
+  <a href="https://github.com/KennyMcSimpson/qingdan/actions/workflows/desktop.yml"><img alt="Desktop checks" src="https://github.com/KennyMcSimpson/qingdan/actions/workflows/desktop.yml/badge.svg" /></a>
 </p>
 <p align="center">A floating Windows task list that moves out of your way.<br />Daily routines remind you on time, persistent notes stay at the top, and deadlines change color.</p>
 <p align="center"><a href="https://github.com/KennyMcSimpson/qingdan/releases/latest"><strong>Download for Windows</strong></a> &nbsp; · &nbsp; <a href="#getting-started">Getting started</a> &nbsp; · &nbsp; <a href="https://github.com/KennyMcSimpson/qingdan/issues">Report an issue</a></p>
@@ -47,6 +48,8 @@ Open **循环**, enter a task and press Enter. Choose **每天** (Daily), **工�
 
 Each occurrence reminds you once at the chosen time. Completing it records that occurrence and schedules the next. New periods roll forward even without completion, so missed days do not accumulate. Weekdays do not include a public-holiday calendar. Use persistent reminders for notes that should remain visible; use recurring tasks for timed routines.
 
+<p align="center"><img src="docs/images/recurring-editor.png" width="340" alt="Recurring editor: frequency, first date, local reminder time and next occurrence" /></p>
+
 ### A little color before time runs out
 
 | State | Default threshold | Appearance |
@@ -67,7 +70,7 @@ After switching to another window, Qingdan defaults to tucking against the neare
 
 The header dock button tucks immediately. The moon button hides the app for **15 minutes**, then returns only the edge tab. You can recall it sooner from the tray or shortcut.
 
-<p align="center"><img src="docs/images/compact.png" width="404" alt="The compact strip keeps the nearest deadline visible" /></p>
+<p align="center"><img src="docs/images/edge.png" width="46" alt="The edge tab" /> &nbsp; <img src="docs/images/compact.png" width="388" alt="The compact strip keeps the nearest deadline visible" /></p>
 
 The compact strip keeps the nearest deadline and its warning color visible. Click it to expand. Persistent reminders stay until you archive them manually.
 
@@ -105,7 +108,7 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** for development and packaging. There 
 
 ## Verification and releases
 
-Core tests cover recurring dates, notification deduplication, legacy data, window geometry and recovery. GitHub Actions runs real Electron interactions on Windows and Linux and builds the portable Windows package. See [VALIDATION.md](VALIDATION.md) for exact results and scope.
+**29 core checks and 23 real Electron interactions on each of Windows and Linux pass.** They cover recurring dates, notification deduplication, legacy data, window geometry and recovery. GitHub Actions verifies the official runtime and builds the portable Windows package. See [VALIDATION.md](VALIDATION.md) for exact results and scope.
 
 Automation does not replace feedback from every Windows device. Notification policies, startup registration, Chinese input methods and multi-monitor DPI still need local confirmation. This release is unsigned and has no automatic updater.
 
