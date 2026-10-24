@@ -13,7 +13,7 @@
     "package:win": "python scripts/package_windows.py"
   },
   "devDependencies": {
-    "electron": "44.4.5",
+    "electron": "44.9.1",
     "playwright": "1.62.1",
     "resedit": "3.1.0"
   },
