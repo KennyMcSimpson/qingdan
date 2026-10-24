@@ -80,7 +80,8 @@ async function main() {
   await check('collapse preserves expanded geometry and highlights nearest DDL',async()=>{
     const height=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds().height);
     await page.locator('#collapseButton').click();await page.waitForFunction(()=>!document.querySelector('#compactView').hidden);
-    assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds().height),132);
+    // Windows can round the frameless client height up by one device pixel.
+    assert.ok([132,133].includes(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds().height)));
     assert.equal(await page.locator('#compactTitle').textContent(),'提交论文终稿');await shot('compact');await page.locator('#compactView').click();
     assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds().height),height);
   });
@@ -141,7 +142,7 @@ async function main() {
   await check('edge mode uses a narrow native window and restores full geometry',async()=>{
     const before=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());
     await page.locator('#dockButton').click();await page.waitForFunction(()=>!document.querySelector('#edgeView').hidden);
-    const b=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());assert.equal(b.width,46);assert.equal(b.height,164);
+    const b=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());assert.equal(b.width,46);assert.ok([164,165].includes(b.height));
     assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isAlwaysOnTop()),true);await shot('edge');
     await page.locator('#edgeOpen').click();await page.waitForFunction(()=>document.querySelector('#edgeView').hidden);
     const after=await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBounds());assert.equal(after.width,before.width);assert.equal(after.height,before.height);

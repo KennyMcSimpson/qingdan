@@ -24,6 +24,14 @@ function log(error) {
 }
 function report(error) { log(error); if (win && !win.isDestroyed()) win.webContents.send('app:error', error.message || String(error)); }
 function payload() { return { state, collapsed, tucked, dataPath: store.directory, notice: store.notice, shortcutAvailable, canUndo: archive.length > 0 }; }
+function setNativeAlwaysOnTop(value) {
+  if (!win || win.isDestroyed()) return;
+  const enabled = value === true;
+  // Electron's default Windows "floating" level is not reported as always-on-top
+  // by current desktop builds. The torn-off level maps to the native topmost style.
+  if (process.platform === 'win32' && enabled) win.setAlwaysOnTop(true, 'torn-off');
+  else win.setAlwaysOnTop(enabled);
+}
 function broadcast() { if (win && !win.isDestroyed()) win.webContents.send('state:changed', payload()); }
 function commit(next, undoable = false) {
   const previous = state;
@@ -90,7 +98,7 @@ function setTucked(value) {
       const b = win.getBounds(), area = screen.getDisplayMatching(b).workArea;
       edgeSide = Layout.nearestEdge(b, area); tucked = true;
       win.setMinimumSize(46,164); win.setMaximumSize(46,164);
-      win.setBounds(Layout.edgeBounds(b, area, edgeSide)); win.setAlwaysOnTop(true);
+      win.setBounds(Layout.edgeBounds(b, area, edgeSide)); setNativeAlwaysOnTop(true);
     } else {
       const edge = win.getBounds(), area = screen.getDisplayMatching(edge).workArea;
       tucked = false;
@@ -98,7 +106,7 @@ function setTucked(value) {
       const width = normalBounds.width;
       const b = { ...normalBounds, x: edgeSide === 'left' ? area.x + 8 : area.x + area.width - width - 8,
         y: edge.y, height: collapsed ? 132 : normalHeight };
-      win.setBounds(Layout.visibleBounds(b, area, collapsed)); win.setAlwaysOnTop(state.settings.alwaysOnTop);
+      win.setBounds(Layout.visibleBounds(b, area, collapsed)); setNativeAlwaysOnTop(state.settings.alwaysOnTop);
     }
     captureBounds(); commit(state); return payload();
   } finally { changingBounds = false; }
@@ -123,7 +131,7 @@ function away(minutes) {
   return { ok:true };
 }
 function applyNativeSettings(previous = state.settings) {
-  win.setAlwaysOnTop(tucked || state.settings.alwaysOnTop);
+  setNativeAlwaysOnTop(tucked || state.settings.alwaysOnTop);
   win.setOpacity(state.settings.opacity);
   win.setBackgroundColor(state.settings.theme === 'dark' ? '#242823' : '#f8f7f2');
   if (process.platform === 'win32' && previous.launchOnStartup !== state.settings.launchOnStartup) {
@@ -245,6 +253,7 @@ function createWindow() {
     icon:asset('icon.png'), autoHideMenuBar:true,
     webPreferences:{ preload:path.join(__dirname,'preload.js'), contextIsolation:true, nodeIntegration:false, sandbox:true, spellcheck:false } });
   win.setOpacity(state.settings.opacity);
+  setNativeAlwaysOnTop(state.settings.alwaysOnTop);
   win.webContents.setWindowOpenHandler(() => ({ action:'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
   win.webContents.on('render-process-gone', (_event,details) => { log(new Error('Renderer stopped: ' + details.reason)); if (!quitting) win.reload(); });
