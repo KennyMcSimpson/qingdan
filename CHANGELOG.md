@@ -1,5 +1,10 @@
 # Changelog / 更新记录
 
+## 1.1.1 — 2026-10-24
+
+- 修复 Windows 原生窗口置顶行为；真实窗口测试兼容显示缩放误差。 / Fix native Windows always-on-top behavior and tolerate display scaling in window tests.
+- Electron 44.9.1 与 undici 7.30.1 安全补丁。 / Update Electron and the download dependency with security patches.
+
 ## 1.1.0 — 2026-09-30
 
 ### 中文
