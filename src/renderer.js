@@ -2,327 +2,605 @@
 const $ = id => document.getElementById(id);
 const M = window.QingdanModel;
 const icons = {
-  pin:'<path d="m9 3 6 0-1 6 3 4H7l3-4-1-6ZM12 13v7"/>',
-  collapse:'<path d="M5 8h14M8 16l4-4 4 4"/>', expand:'<path d="M5 6h14M8 12l4 4 4-4"/>',
-  minus:'<path d="M6 12h12"/>', x:'<path d="m6 6 12 12M18 6 6 18"/>',
-  search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>',
-  plus:'<path d="M12 5v14M5 12h14"/>', arrow:'<path d="M5 12h14m-5-5 5 5-5 5"/>',
-  dock:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 4v16m-8-8h5m-2-2 2 2-2 2"/>',
-  quiet:'<path d="M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10Z"/>',
-  repeat:'<path d="M4 8h13l-3-3m3 3-3 3M20 16H7l3 3m-3-3 3-3"/>',
-  check:'<path d="m5 12 4 4L19 6"/>',
-  'check-circle':'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
-  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  star:'<path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.3-5.7-3-5.7 3 1.1-6.3-4.6-4.5 6.4-.9Z"/>',
-  leaf:'<path d="M20 4C5 1 1 11 7 17s17 0 13-13Z"/><path d="M4 21 16 9"/>',
-  more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
-  trash:'<path d="M4 6h16M9 6V3h6v3M6 6l1 14h10l1-14M10 10v6M14 10v6"/>',
-  undo:'<path d="M8 5 3 10l5 5M3 10h11a5 5 0 0 1 0 10h-3"/>',
-  sliders:'<path d="M4 7h5m4 0h7M4 17h10m4 0h2M9 4v6M14 14v6"/>',
-  settings:'<path d="m9 3-1 3-3 1-2 4 2 3 1 4 4 2 4-1 3-2 2-4-1-4-3-2-2-4Z"/><circle cx="11.8" cy="11.7" r="3.2"/>',
-  export:'<path d="M12 15V3m-4 4 4-4 4 4M5 13v7h14v-7"/>',
-  import:'<path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5"/>'
+  pin: '<path d="m9 3 6 0-1 6 3 4H7l3-4-1-6ZM12 13v7"/>',
+  collapse: '<path d="M5 8h14M8 16l4-4 4 4"/>', expand: '<path d="M5 6h14M8 12l4 4 4-4"/>',
+  minus: '<path d="M6 12h12"/>', x: '<path d="m6 6 12 12M18 6 6 18"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>', arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
+  dock: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 4v16m-8-8h5m-2-2 2 2-2 2"/>',
+  quiet: '<path d="M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10Z"/>',
+  repeat: '<path d="M4 8h13l-3-3m3 3-3 3M20 16H7l3 3m-3-3 3-3"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  'check-circle': '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  star: '<path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.3-5.7-3-5.7 3 1.1-6.3-4.6-4.5 6.4-.9Z"/>',
+  leaf: '<path d="M20 4C5 1 1 11 7 17s17 0 13-13Z"/><path d="M4 21 16 9"/>',
+  more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  trash: '<path d="M4 6h16M9 6V3h6v3M6 6l1 14h10l1-14M10 10v6M14 10v6"/>',
+  undo: '<path d="M8 5 3 10l5 5M3 10h11a5 5 0 0 1 0 10h-3"/>',
+  sliders: '<path d="M4 7h5m4 0h7M4 17h10m4 0h2M9 4v6M14 14v6"/>',
+  settings: '<path d="m9 3-1 3-3 1-2 4 2 3 1 4 4 2 4-1 3-2 2-4-1-4-3-2-2-4Z"/><circle cx="11.8" cy="11.7" r="3.2"/>',
+  export: '<path d="M12 15V3m-4 4 4-4 4 4M5 13v7h14v-7"/>',
+  import: '<path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5"/>',
+  'eye-off': '<path d="M10.7 5.1A10 10 0 0 1 21 12a10 10 0 0 1-3.3 4.1M6.6 6.6A10 10 0 0 0 3 12a10 10 0 0 0 14.4 5.4M2 2l20 20"/>',
+  ghost: '<path d="M9 10h.01M15 10h.01M12 3a7 7 0 0 0-7 7v10l2.5-2 2.25 2L12 18l2.25 2 2.25-2L19 20V10a7 7 0 0 0-7-7Z"/>',
+  focus: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+  play: '<polygon points="7 5 19 12 7 19 7 5"/>',
+  pause: '<path d="M8 5v14M16 5v14"/>'
 };
 function icon(name) { const holder = document.createElement('span'); holder.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + (icons[name] || icons.plus) + '</svg>'; return holder.firstElementChild; }
 function fillIcons(root = document) { root.querySelectorAll('[data-icon]').forEach(node => node.replaceChildren(icon(node.dataset.icon))); }
 function el(tag, className, text) { const n = document.createElement(tag); if (className) n.className = className; if (text !== undefined) n.textContent = text; return n; }
+
 let state, current = {}, tab = 'all', query = '', editId = null, editKind = 'task', toastTimer, lastFocus, busy = false;
 let suppressClickUntil = 0;
-const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
-const pad = n => String(n).padStart(2,'0');
-const localDate = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
-function fullDate(iso) { const d = new Date(iso); return (d.getFullYear() !== new Date().getFullYear() ? d.getFullYear() + '/' : '') + pad(d.getMonth()+1) + '/' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
-function setIcon(id,name) { $(id).replaceChildren(icon(name)); }
+let quickRawMode = false;
+let focusTaskId = null, focusSeconds = 25 * 60, focusEndAt = 0, focusRunning = false, focusTick = null;
+
+const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const pad = n => String(n).padStart(2, '0');
+const localDate = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+function fullDate(iso) {
+  const d = new Date(iso);
+  return (d.getFullYear() !== new Date().getFullYear() ? d.getFullYear() + '-' : '') + months[d.getMonth()] + ' ' + d.getDate() + ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function formatTimer(secs) {
+  const s = Math.max(0, secs);
+  return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
+}
+function setIcon(id, name) { $(id).replaceChildren(icon(name)); }
 function accept(data) {
   if (data.error) throw new Error(data.error);
   if (data.state) { current = data; state = data.state; render(); }
   return data;
 }
 function errorMessage(error) {
-  $('saveStatus').className = 'save-error'; $('saveStatus').replaceChildren(document.createTextNode('操作未保存 · 请重试'));
+  $('saveStatus').className = 'save-error'; $('saveStatus').replaceChildren(document.createTextNode('Not saved · Try again'));
   if ($('editorDialog').open) { $('editorError').textContent = error.message; $('editorError').hidden = false; }
   else if ($('settingsDialog').open) { $('settingsError').textContent = error.message; $('settingsError').hidden = false; renderSettings(); }
-  else toast(error.message || '操作失败，请重试。', false, true);
+  else toast(error.message || 'Action failed. Please try again.', false, true);
 }
 async function act(action, message) {
   if (busy) return null;
-  busy = true; $('saveStatus').className = 'saving'; $('saveStatus').textContent = '正在保存…';
+  busy = true; $('saveStatus').className = 'saving'; $('saveStatus').textContent = 'Saving…';
   try { const data = accept(await window.qingdan.action(action)); if (message) toast(message, action.type !== 'settings'); return data; }
-  catch(error) { errorMessage(error); return null; }
+  catch (error) { errorMessage(error); return null; }
   finally { busy = false; }
 }
-async function command(name,value) {
-  try { return accept(await window.qingdan.command(name,value)); } catch(error) { errorMessage(error); return null; }
+async function command(name, value) {
+  try { return accept(await window.qingdan.command(name, value)); } catch (error) { errorMessage(error); return null; }
 }
 function toast(text, undo = false, error = false) {
-  clearTimeout(toastTimer); $('toastText').textContent = text; $('toastUndo').hidden = !undo; $('toast').classList.toggle('error',error); $('toast').hidden = false;
+  clearTimeout(toastTimer); $('toastText').textContent = text; $('toastUndo').hidden = !undo; $('toast').classList.toggle('error', error); $('toast').hidden = false;
   toastTimer = setTimeout(() => $('toast').hidden = true, error ? 12000 : 6000);
 }
+
+function stopFocusTimer() {
+  if (focusTick) { clearInterval(focusTick); focusTick = null; }
+  if (focusRunning && focusEndAt) {
+    focusSeconds = Math.max(0, Math.ceil((focusEndAt - Date.now()) / 1000));
+  }
+  focusEndAt = 0;
+  focusRunning = false;
+}
+function startFocusTimer() {
+  stopFocusTimer();
+  if (focusSeconds <= 0) focusSeconds = 25 * 60;
+  focusEndAt = Date.now() + focusSeconds * 1000;
+  focusRunning = true;
+  $('focusTimer').textContent = formatTimer(focusSeconds);
+  focusTick = setInterval(() => {
+    if (!focusTaskId) { stopFocusTimer(); return; }
+    focusSeconds = Math.max(0, Math.ceil((focusEndAt - Date.now()) / 1000));
+    $('focusTimer').textContent = formatTimer(focusSeconds);
+    if (focusSeconds <= 0) {
+      stopFocusTimer();
+      setIcon('focusToggle', 'play');
+      const taskObj = state?.tasks.find(t => t.id === focusTaskId);
+      void command('focus-done', taskObj ? 'Completed 25m focus: ' + taskObj.title : '25-minute focus session finished.');
+      toast('Focus session finished.', false);
+    }
+  }, 500);
+}
+async function enterFocus(taskId) {
+  const res = await command('collapse', true);
+  if (!res || !res.collapsed) return;
+  focusTaskId = taskId;
+  focusSeconds = 25 * 60;
+  await command('focus-mode', true);
+  startFocusTimer();
+  render();
+}
+async function exitFocus(expandWindow = true) {
+  stopFocusTimer();
+  focusTaskId = null;
+  await command('focus-mode', false);
+  if (expandWindow && current.collapsed) await command('collapse', false);
+  else render();
+}
+
+function renderQuickPreview() {
+  const val = $('quickInput').value;
+  if (!val.trim() || tab === 'sticky') {
+    $('quickPreview').hidden = true;
+    return;
+  }
+  const parsed = M.parseQuickInput(val);
+  if (!parsed.parsed) {
+    $('quickPreview').hidden = true;
+    return;
+  }
+  $('quickPreview').hidden = false;
+  $('quickPreview').classList.toggle('raw-active', quickRawMode);
+  $('quickRawToggle').textContent = quickRawMode ? 'Parse' : 'Raw';
+  $('quickRawToggle').title = quickRawMode ? 'Enable smart date/priority parsing' : 'Keep literal text without parsing';
+  const frag = document.createDocumentFragment();
+  if (quickRawMode) {
+    frag.append(el('span', 'quick-chip muted-chip', 'Literal text mode'));
+  } else {
+    for (const c of parsed.chips) {
+      frag.append(el('span', 'quick-chip chip-' + c.kind, c.label));
+    }
+  }
+  $('quickChips').replaceChildren(frag);
+}
+
 function render() {
   if (!state) return;
   const now = Date.now(), today = new Date(now);
-  document.documentElement.dataset.theme = state.settings.theme; document.documentElement.dataset.accent = state.settings.accent;
-  $('pinButton').classList.toggle('active',state.settings.alwaysOnTop);
-  $('pinButton').title = state.settings.alwaysOnTop ? '已置顶 · 点击取消' : '点击始终置顶';
-  $('pinButton').setAttribute('aria-label',state.settings.alwaysOnTop ? '取消置顶' : '始终置顶');
-  $('pinButton').setAttribute('aria-pressed',String(state.settings.alwaysOnTop));
-  $('titlebar').hidden = !!current.tucked; $('edgeView').hidden = !current.tucked;
-  document.body.classList.toggle('edge-mode',!!current.tucked);
-  $('fullView').hidden = !!current.collapsed || !!current.tucked; $('compactView').hidden = !current.collapsed || !!current.tucked;
-  setIcon('collapseButton',current.collapsed ? 'expand' : 'collapse');
-  $('collapseButton').title = current.collapsed ? '展开清单' : '收成小条'; $('collapseButton').setAttribute('aria-label',$('collapseButton').title);
-  const active = state.tasks.filter(t => !t.completedAt), tasks = active.filter(t => t.kind === 'task'), sticky = active.filter(t => t.kind === 'sticky'), done = state.tasks.filter(t => t.completedAt);
-  const dueTasks = tasks.filter(t => t.dueAt).sort((a,b) => Date.parse(a.dueAt)-Date.parse(b.dueAt));
-  const next = dueTasks[0] || tasks.find(t => t.important) || tasks[0] || sticky[0];
-  const d = next ? M.deadline(next,state.settings,now) : { level:'none', text:'' };
-  $('compactTitle').textContent = next ? next.title : '今天，给自己留点余地。';
-  $('compactMeta').textContent = next ? (d.text || '随时开始') + ' · ' + active.length + ' 件在清单里' : '清单空空，心里轻轻。点击展开';
+  document.documentElement.dataset.theme = state.settings.theme;
+  document.documentElement.dataset.accent = state.settings.accent;
+
+  const isGhost = !!current.ghost;
+  const isStealth = !!state.settings.hideFromCapture;
+  const canExitGhost = current.ghostShortcutAvailable !== false || current.shortcutAvailable !== false || !!current.trayAvailable;
+  document.body.classList.toggle('ghost-mode', isGhost);
+  $('ghostBanner').hidden = !isGhost || !!current.tucked;
+  $('ghostBannerText').textContent = current.ghostShortcutAvailable !== false
+    ? 'Ghost click-through · Press Ctrl+Alt+G or Esc to interact'
+    : current.shortcutAvailable !== false
+      ? 'Ghost click-through · Press Ctrl+Alt+Q, Esc, or click tray to exit'
+      : 'Ghost click-through · Click system tray or press Esc to exit';
+  $('stealthPill').hidden = !isStealth;
+
+  $('stealthButton').classList.toggle('active', isStealth);
+  $('stealthButton').setAttribute('aria-pressed', String(isStealth));
+  $('stealthButton').title = isStealth ? 'Hidden from screen share · Click to disable' : 'Hide from screen share (Zoom / Teams / OBS)';
+
+  $('ghostButton').classList.toggle('active', isGhost);
+  $('ghostButton').disabled = !isGhost && !canExitGhost;
+  $('ghostButton').setAttribute('aria-pressed', String(isGhost));
+  $('ghostButton').title = isGhost
+    ? 'Ghost click-through active · Exit via hotkey, Esc, or tray'
+    : canExitGhost
+      ? (current.ghostShortcutAvailable !== false ? 'Ghost click-through · Ctrl+Alt+G' : 'Ghost click-through · Exit via tray or Ctrl+Alt+Q')
+      : 'Ghost click-through unavailable (no hotkey or system tray)';
+
+  $('pinButton').classList.toggle('active', state.settings.alwaysOnTop);
+  $('pinButton').title = state.settings.alwaysOnTop ? 'Pinned on top · Click to unpin' : 'Click to keep on top';
+  $('pinButton').setAttribute('aria-label', state.settings.alwaysOnTop ? 'Unpin from top' : 'Always on top');
+  $('pinButton').setAttribute('aria-pressed', String(state.settings.alwaysOnTop));
+
+  $('titlebar').hidden = !!current.tucked;
+  $('edgeView').hidden = !current.tucked;
+  document.body.classList.toggle('edge-mode', !!current.tucked);
+  if (!current.collapsed && focusTaskId) { stopFocusTimer(); focusTaskId = null; }
+  $('fullView').hidden = !!current.collapsed || !!current.tucked;
+  $('compactView').hidden = !current.collapsed || !!current.tucked;
+  setIcon('collapseButton', current.collapsed ? 'expand' : 'collapse');
+  $('collapseButton').title = current.collapsed ? 'Expand list' : 'Compact strip';
+  $('collapseButton').setAttribute('aria-label', $('collapseButton').title);
+
+  const active = state.tasks.filter(t => !t.completedAt);
+  const tasks = active.filter(t => t.kind === 'task');
+  const sticky = active.filter(t => t.kind === 'sticky');
+  const done = state.tasks.filter(t => t.completedAt);
+  const dueTasks = tasks.filter(t => t.dueAt).sort((a, b) => Date.parse(a.dueAt) - Date.parse(b.dueAt));
+
+  // Focused task or nearest DDL in compact view
+  const focused = focusTaskId ? active.find(t => t.id === focusTaskId) : null;
+  if (focusTaskId && !focused) { stopFocusTimer(); focusTaskId = null; }
+  const next = focused || dueTasks[0] || tasks.find(t => t.important) || tasks[0] || sticky[0];
+  const d = next ? M.deadline(next, state.settings, now) : { level: 'none', text: '' };
+  $('compactTitle').textContent = next ? next.title : 'Clear sky today.';
+  $('compactMeta').textContent = focused
+    ? 'Focusing · ' + (d.text || 'No deadline')
+    : next ? (d.text || 'Ready anytime') + ' · ' + active.length + ' open' : 'Nothing urgent. Click to expand.';
   $('compactView').dataset.level = d.level;
-  $('todayDate').textContent = (today.getMonth()+1) + ' 月 ' + today.getDate() + ' 日 · ' + weekdays[today.getDay()];
+  $('compactView').classList.toggle('is-focusing', !!focused);
+  $('focusControls').hidden = !focused;
+  $('compactArrow').hidden = !!focused;
+  if (focused) {
+    $('focusTimer').textContent = formatTimer(focusSeconds);
+    setIcon('focusToggle', focusRunning ? 'pause' : 'play');
+  }
+
+  $('todayDate').textContent = weekdays[today.getDay()] + ', ' + months[today.getMonth()] + ' ' + today.getDate();
   $('activeCount').textContent = tasks.length;
-  const overdue = tasks.filter(t => M.deadline(t,state.settings,now).level === 'overdue').length;
-  const near = tasks.filter(t => ['soon','urgent'].includes(M.deadline(t,state.settings,now).level)).length;
+  const overdue = tasks.filter(t => M.deadline(t, state.settings, now).level === 'overdue').length;
+  const near = tasks.filter(t => ['soon', 'urgent'].includes(M.deadline(t, state.settings, now).level)).length;
   const todayDone = done.filter(t => localDate(new Date(t.completedAt)) === localDate(today)).length;
   $('edgeCount').textContent = overdue ? overdue : tasks.length;
   $('edgeView').dataset.level = overdue ? 'overdue' : near ? 'urgent' : 'none';
-  $('edgeOpen').title = (overdue ? overdue + ' 件待办已到期' : tasks.length + ' 件待办') + ' · 点击展开';
-  $('nearSummary').textContent = overdue ? overdue + ' 件已逾期' + (near ? ' · ' + near + ' 件临近' : '') : near ? near + ' 件快到时间了' : todayDone ? '今天已完成 ' + todayDone + ' 件，很棒。' : '把重要的事，留在桌边';
+  const edgeNextHint = next ? ' · Next: ' + next.title.slice(0, 32) + (d.text ? ' (' + d.text + ')' : '') : '';
+  $('edgeOpen').title = (overdue ? overdue + ' overdue' : tasks.length + ' open') + edgeNextHint + ' · Click to expand';
+
+  $('nearSummary').textContent = overdue
+    ? overdue + ' overdue' + (near ? ' · ' + near + ' due soon' : '')
+    : near ? near + ' due soon'
+      : todayDone ? todayDone + ' done today'
+        : 'Quietly keeping track of what matters';
   $('nearSummary').classList.toggle('attention', !!(overdue || near));
-  for (const [id,number] of [['countAll',active.length],['countDdl',dueTasks.filter(t => !t.repeat).length],['countRepeat',tasks.filter(t => t.repeat).length],['countSticky',sticky.length],['countDone',done.length]]) $(id).textContent = number;
-  document.querySelectorAll('[data-tab]').forEach(button => { button.classList.toggle('active',button.dataset.tab === tab); button.setAttribute('aria-pressed',String(button.dataset.tab === tab)); });
+
+  for (const [id, number] of [['countAll', active.length], ['countDdl', dueTasks.filter(t => !t.repeat).length], ['countRepeat', tasks.filter(t => t.repeat).length], ['countSticky', sticky.length], ['countDone', done.length]]) $(id).textContent = number;
+  document.querySelectorAll('[data-tab]').forEach(button => { button.classList.toggle('active', button.dataset.tab === tab); button.setAttribute('aria-pressed', String(button.dataset.tab === tab)); });
   renderList(now);
   $('deadlineLegend').hidden = !dueTasks.length || tab === 'sticky' || tab === 'done';
-  $('quickInput').placeholder = tab === 'sticky' ? '写一条常驻提醒，回车记下…' : tab === 'repeat' ? '写一件日常小事，回车设置循环…' : '写下一件事，回车记下…';
+  $('quickInput').placeholder = tab === 'sticky'
+    ? 'Add a pinned reminder, press Enter…'
+    : tab === 'repeat'
+      ? 'e.g., "Standup weekdays 09:00"…'
+      : 'Try "Submit draft fri 18:00 !" or "pin: …"';
+  renderQuickPreview();
   $('undoButton').disabled = !current.canUndo;
-  $('saveStatus').className = ''; const dot = el('i'); $('saveStatus').replaceChildren(dot,document.createTextNode('已保存在本机'));
+  $('saveStatus').className = ''; const dot = el('i'); $('saveStatus').replaceChildren(dot, document.createTextNode('Saved locally'));
   $('recoveryNotice').hidden = !current.notice; $('recoveryNotice').textContent = current.notice || '';
   if ($('settingsDialog').open) renderSettings();
 }
+
 function renderShelf(sticky) {
   $('stickyShelf').hidden = tab !== 'all' || !sticky.length;
   $('shelfCount').textContent = sticky.length;
   $('shelfBody').hidden = state.settings.stickyCollapsed;
-  $('stickyToggle').setAttribute('aria-expanded',String(!state.settings.stickyCollapsed));
-  setIcon('shelfChevron',state.settings.stickyCollapsed ? 'expand' : 'collapse');
+  $('stickyToggle').setAttribute('aria-expanded', String(!state.settings.stickyCollapsed));
+  setIcon('shelfChevron', state.settings.stickyCollapsed ? 'expand' : 'collapse');
   const fragment = document.createDocumentFragment();
-  for (const t of sticky.slice(0,2)) {
-    const row = el('article','task-row shelf-row'); row.dataset.id = t.id; row.dataset.level = 'sticky';
-    const mark = el('button','task-check sticky'); mark.type = 'button'; mark.append(icon('pin'));
-    mark.setAttribute('aria-label','编辑常驻提醒：' + t.title); mark.addEventListener('click',() => openEditor(t.id));
-    const content = el('button','task-content'); content.type = 'button'; content.setAttribute('aria-label','编辑：' + t.title);
-    const title = el('span','task-title',t.title); if (t.important) { const star = el('span','important-star'); star.append(icon('star')); title.append(star); }
-    content.append(title); if (t.note) content.append(el('span','task-note',t.note));
-    content.addEventListener('click',() => openEditor(t.id)); row.append(mark,content); fragment.append(row);
+  for (const t of sticky.slice(0, 2)) {
+    const row = el('article', 'task-row shelf-row'); row.dataset.id = t.id; row.dataset.level = 'sticky';
+    const mark = el('button', 'task-check sticky'); mark.type = 'button'; mark.append(icon('pin'));
+    mark.setAttribute('aria-label', 'Edit pinned note: ' + t.title); mark.addEventListener('click', () => openEditor(t.id));
+    const content = el('button', 'task-content'); content.type = 'button'; content.setAttribute('aria-label', 'Edit: ' + t.title);
+    const title = el('span', 'task-title', t.title); if (t.important) { const star = el('span', 'important-star'); star.append(icon('star')); title.append(star); }
+    content.append(title); if (t.note) content.append(el('span', 'task-note', t.note));
+    content.addEventListener('click', () => openEditor(t.id)); row.append(mark, content); fragment.append(row);
   }
   $('stickyItems').replaceChildren(fragment);
   $('viewSticky').hidden = sticky.length <= 2;
-  $('viewSticky').replaceChildren(document.createTextNode('还有 ' + Math.max(0,sticky.length-2) + ' 条 · 查看全部 '),icon('arrow'));
+  $('viewSticky').replaceChildren(document.createTextNode(Math.max(0, sticky.length - 2) + ' more · View all '), icon('arrow'));
 }
+
 function renderList(now = Date.now()) {
   const scroll = $('listArea').scrollTop, fragment = document.createDocumentFragment();
-  const groups = M.groups(state.tasks,tab,query,state.settings,now);
-  const count = groups.reduce((sum,g) => sum + g.tasks.length,0);
+  const groups = M.groups(state.tasks, tab, query, state.settings, now);
+  const count = groups.reduce((sum, g) => sum + g.tasks.length, 0);
   renderShelf(groups.find(g => g.key === 'sticky')?.tasks || []);
   for (const group of groups) {
     if (!group.tasks.length) continue;
     if (tab === 'all' && group.key === 'sticky') continue;
-    const section = el('section','task-group group-' + group.key), heading = el('h2','group-label',group.label);
-    heading.append(el('span','group-count',group.tasks.length)); section.append(heading);
+    const section = el('section', 'task-group group-' + group.key), heading = el('h2', 'group-label', group.label);
+    heading.append(el('span', 'group-count', group.tasks.length)); section.append(heading);
     for (const t of group.tasks) {
-      const d = M.deadline(t,state.settings,now), row = el('article','task-row' + (t.completedAt ? ' done' : ''));
+      const d = M.deadline(t, state.settings, now), row = el('article', 'task-row' + (t.completedAt ? ' done' : ''));
       row.dataset.id = t.id; row.dataset.level = d.level;
-      const check = el('button','task-check' + (t.kind === 'sticky' && !t.completedAt ? ' sticky' : ''));
-      check.type = 'button'; check.title = t.completedAt ? '恢复到清单' : t.kind === 'sticky' ? '编辑长期提醒' : '标记完成';
-      check.setAttribute('aria-label',check.title + '：' + t.title);
+      const check = el('button', 'task-check' + (t.kind === 'sticky' && !t.completedAt ? ' sticky' : ''));
+      check.type = 'button'; check.title = t.completedAt ? 'Restore to list' : t.kind === 'sticky' ? 'Edit pinned note' : 'Mark complete';
+      check.setAttribute('aria-label', check.title + ': ' + t.title);
       if (t.completedAt || t.kind === 'sticky') check.append(icon(t.completedAt ? 'check' : 'pin'));
-      if (t.occurrenceOf) { check.disabled = true; check.title = '已完成本次循环 · 可用撤销恢复刚完成的一次'; }
-      check.addEventListener('click',() => {
+      if (t.occurrenceOf) { check.disabled = true; check.title = 'Completed routine occurrence · Use Undo to revert'; }
+      check.addEventListener('click', () => {
         if (Date.now() < suppressClickUntil) return;
-        suppressClickUntil = Date.now()+220;
+        suppressClickUntil = Date.now() + 220;
         if (t.kind === 'sticky' && !t.completedAt) openEditor(t.id);
-        else act({ type:'toggle', id:t.id },t.completedAt ? '已放回清单' : t.repeat ? '本次完成，已安排下一次。' : '完成一件，轻一点。');
+        else act({ type: 'toggle', id: t.id }, t.completedAt ? 'Restored to list.' : t.repeat ? 'Done — next occurrence scheduled.' : 'Marked complete.');
       });
-      const content = el('button','task-content'); content.type = 'button'; content.setAttribute('aria-label','编辑：' + t.title);
-      const title = el('span','task-title',t.title);
-      if (t.important) { const star = el('span','important-star'); star.title = '重要'; star.append(icon('star')); title.append(star); }
+      const content = el('button', 'task-content'); content.type = 'button'; content.setAttribute('aria-label', 'Edit: ' + t.title);
+      const title = el('span', 'task-title', t.title);
+      if (t.important) { const star = el('span', 'important-star'); star.title = 'Important'; star.append(icon('star')); title.append(star); }
       content.append(title);
-      if (t.note) content.append(el('span','task-note',t.note));
+      if (t.note) content.append(el('span', 'task-note', t.note));
       if (t.dueAt && !t.completedAt) {
-        const meta = el('span','task-meta'), pill = el('span','due-pill level-' + d.level);
-        pill.append(icon('clock'),document.createTextNode(d.text));
-        meta.append(pill,el('span','due-date',fullDate(t.dueAt))); content.append(meta);
-        if (t.repeat) { const repeat = el('span','repeat-meta'); repeat.append(icon('repeat'),document.createTextNode(M.repeats[t.repeat] + (t.repeat === 'weekly' ? weekdays[new Date(t.dueAt).getDay()].slice(1) : '') + ' · ' + pad(new Date(t.dueAt).getHours()) + ':' + pad(new Date(t.dueAt).getMinutes()))); content.append(repeat); }
+        const meta = el('span', 'task-meta'), pill = el('span', 'due-pill level-' + d.level);
+        pill.append(icon('clock'), document.createTextNode(d.text));
+        meta.append(pill, el('span', 'due-date', fullDate(t.dueAt))); content.append(meta);
+        if (t.repeat) {
+          const repeat = el('span', 'repeat-meta');
+          repeat.append(icon('repeat'), document.createTextNode(M.repeats[t.repeat] + (t.repeat === 'weekly' ? ' ' + weekdays[new Date(t.dueAt).getDay()] : '') + ' · ' + pad(new Date(t.dueAt).getHours()) + ':' + pad(new Date(t.dueAt).getMinutes())));
+          content.append(repeat);
+        }
+        const rw = M.runway(t, state.settings, now);
+        if (rw) {
+          const bar = el('span', 'runway-bar');
+          const fill = el('i', 'level-' + rw.level);
+          fill.style.width = Math.round(rw.ratio * 100) + '%';
+          bar.append(fill);
+          content.append(bar);
+        }
       } else if (t.kind === 'sticky' && !t.completedAt) {
-        const meta = el('span','task-meta'), sticky = el('span','sticky-meta'); sticky.append(icon('leaf'),document.createTextNode('一直在这里')); meta.append(sticky); content.append(meta);
-      } else if (t.completedAt) { content.append(el('span','task-meta',(t.kind === 'sticky' ? '归档于 ' : '完成于 ') + fullDate(t.completedAt))); if (t.occurrenceOf) content.append(el('span','repeat-meta',M.repeats[t.occurrenceRepeat] + ' · 本次完成记录')); }
-      content.addEventListener('click',() => openEditor(t.id));
-      const menu = el('button','row-menu'); menu.title = '编辑 / 删除'; menu.setAttribute('aria-label','更多操作：' + t.title); menu.append(icon('more')); menu.addEventListener('click',() => openEditor(t.id));
-      row.append(check,content,menu); section.append(row);
+        const meta = el('span', 'task-meta'), st = el('span', 'sticky-meta'); st.append(icon('leaf'), document.createTextNode('Always visible')); meta.append(st); content.append(meta);
+      } else if (t.completedAt) {
+        content.append(el('span', 'task-meta', (t.kind === 'sticky' ? 'Archived ' : 'Done ') + fullDate(t.completedAt)));
+        if (t.occurrenceOf) content.append(el('span', 'repeat-meta', M.repeats[t.occurrenceRepeat] + ' · Completed occurrence'));
+      }
+      content.addEventListener('click', () => openEditor(t.id));
+
+      const actions = el('div', 'row-actions');
+      if (!t.completedAt && t.kind === 'task') {
+        if (t.dueAt && !t.repeat) {
+          const s1h = el('button', 'micro-chip', '+1h');
+          s1h.type = 'button'; s1h.title = 'Snooze +1 hour'; s1h.setAttribute('aria-label', 'Snooze +1h: ' + t.title);
+          s1h.addEventListener('click', e => { e.stopPropagation(); act({ type: 'snooze', id: t.id, preset: '+1h' }, 'Snoozed +1 hour.'); });
+          const stmr = el('button', 'micro-chip', 'Tmr');
+          stmr.type = 'button'; stmr.title = 'Snooze to tomorrow'; stmr.setAttribute('aria-label', 'Snooze tomorrow: ' + t.title);
+          stmr.addEventListener('click', e => { e.stopPropagation(); act({ type: 'snooze', id: t.id, preset: 'tomorrow' }, 'Moved to tomorrow.'); });
+          actions.append(s1h, stmr);
+        }
+        const focusBtn = el('button', 'row-menu focus-trigger');
+        focusBtn.type = 'button'; focusBtn.title = 'Focus on this task'; focusBtn.setAttribute('aria-label', 'Focus: ' + t.title);
+        focusBtn.append(icon('focus'));
+        focusBtn.addEventListener('click', e => { e.stopPropagation(); void enterFocus(t.id); });
+        actions.append(focusBtn);
+      }
+      const menu = el('button', 'row-menu'); menu.type = 'button'; menu.title = 'Edit / Delete'; menu.setAttribute('aria-label', 'More actions: ' + t.title); menu.append(icon('more')); menu.addEventListener('click', () => openEditor(t.id));
+      actions.append(menu);
+      row.append(check, content, actions); section.append(row);
     }
     fragment.append(section);
   }
   $('taskList').replaceChildren(fragment); $('listArea').scrollTop = scroll;
   $('emptyState').hidden = count > 0;
   if (!count) {
-    let title = '给重要的事，留个位置。', description = '一个 DDL，一点小提醒。\n写下来，就不用一直记在脑子里。';
-    if (query) { title = '暂时没找到这件事。'; description = '换个词试试，标题和备注都能搜。'; }
-    else if (tab === 'done') { title = '完成的小事，也值得记录。'; description = '点一下待办前的小方框，\n完成的事情就会来到这里。'; }
-    else if (tab === 'ddl') { title = '暂时没有倒计时。'; description = '给待办加个截止时间，\n临近时，轻单会自动变色提醒。'; }
-    else if (tab === 'repeat') { title = '给日常小事，一个固定时间。'; description = '每天喝水、工作日打卡、每周复盘。\n记一次，以后按时提醒。'; }
-    else if (tab === 'sticky') { title = '有些事，值得一直记着。'; description = '长期目标、日常叮嘱、注意事项。\n没有期限，也有自己的位置。'; }
-    $('emptyTitle').textContent = title; $('emptyDescription').replaceChildren(...description.split('\n').flatMap((s,i) => i ? [el('br'),document.createTextNode(s)] : [document.createTextNode(s)]));
+    let title = 'Room for what matters.', description = 'Try typing "Submit draft fri 18:00 !"\nor pin a note to the top shelf.';
+    if (query) { title = 'No matching tasks.'; description = 'Try another word — both titles and notes are searched.'; }
+    else if (tab === 'done') { title = 'Completed tasks land here.'; description = 'Check off any item to keep a quiet record of progress.'; }
+    else if (tab === 'ddl') { title = 'No active deadlines.'; description = 'Add a deadline and Qingdan will shift colors as it approaches.'; }
+    else if (tab === 'repeat') { title = 'No routines yet.'; description = 'Try "Standup weekdays 09:00" or "Weekly review every fri 17:00".'; }
+    else if (tab === 'sticky') { title = 'No pinned notes yet.'; description = 'Keep principles, checklists, or reminders visible without deadlines.'; }
+    $('emptyTitle').textContent = title;
+    $('emptyDescription').replaceChildren(...description.split('\n').flatMap((s, i) => i ? [el('br'), document.createTextNode(s)] : [document.createTextNode(s)]));
     $('emptyAdd').hidden = !!query || tab === 'done';
-    $('emptyAdd').replaceChildren(document.createTextNode(tab === 'sticky' ? '记一条长期提醒 ' : '记下一件事 '),icon('arrow'));
+    $('emptyAdd').replaceChildren(document.createTextNode(tab === 'sticky' ? 'Add pinned note ' : 'Add a task '), icon('arrow'));
   }
 }
+
 function setKind(kind) {
-  editKind = kind; $('kindTask').classList.toggle('selected',kind === 'task'); $('kindSticky').classList.toggle('selected',kind === 'sticky');
-  $('kindTask').setAttribute('aria-pressed',String(kind === 'task')); $('kindSticky').setAttribute('aria-pressed',String(kind === 'sticky'));
+  editKind = kind; $('kindTask').classList.toggle('selected', kind === 'task'); $('kindSticky').classList.toggle('selected', kind === 'sticky');
+  $('kindTask').setAttribute('aria-pressed', String(kind === 'task')); $('kindSticky').setAttribute('aria-pressed', String(kind === 'sticky'));
   $('ddlControls').hidden = kind === 'sticky'; $('stickyHint').hidden = kind !== 'sticky';
 }
 function dateFields() {
   const repeat = editKind === 'task' && $('repeatSelect').value;
   if (repeat) $('hasDue').checked = true;
   $('hasDue').disabled = !!repeat; $('repeatHint').hidden = !repeat;
-  $('dueLabel').textContent = repeat ? '首次日期 / 提醒时间' : '截止时间';
+  $('dueLabel').textContent = repeat ? 'First date & reminder time' : 'Deadline';
   $('dateFields').hidden = !$('hasDue').checked; $('dueDate').required = $('hasDue').checked && editKind === 'task'; previewDate();
 }
 function editorDue() {
   if (editKind === 'sticky' || !$('hasDue').checked) return null;
-  if (!$('dueDate').value) throw new Error('请选择截止日期。');
+  if (!$('dueDate').value) throw new Error('Please select a deadline date.');
   const time = $('dueTime').value || '23:59';
   const d = new Date($('dueDate').value + 'T' + time + ':00');
-  if (!Number.isFinite(d.getTime())) throw new Error('截止时间不正确，请重新选择。');
+  if (!Number.isFinite(d.getTime())) throw new Error('Invalid deadline time. Please select again.');
   return d.toISOString();
 }
 function previewDate() {
-  try { let dueAt = editorDue(); if (!dueAt) return; const repeat = $('repeatSelect').value;
-    if (repeat) dueAt = M.nextRepeat(dueAt,repeat,Date.now(),true);
-    const d = M.deadline({ dueAt },state.settings);
-    $('duePreview').textContent = repeat ? M.repeats[repeat] + (repeat === 'weekly' ? weekdays[new Date(dueAt).getDay()].slice(1) : '') + ' · 下一次 ' + fullDate(dueAt) : d.text + ' · ' + (d.level === 'overdue' ? '这个日期已经过去了' : '到时间前会自动变色'); $('duePreview').className = 'due-preview'; $('duePreview').dataset.level = repeat ? 'future' : d.level; }
-  catch(_) { $('duePreview').textContent = ''; }
+  try {
+    let dueAt = editorDue(); if (!dueAt) return; const repeat = $('repeatSelect').value;
+    if (repeat) dueAt = M.nextRepeat(dueAt, repeat, Date.now(), true);
+    const d = M.deadline({ dueAt }, state.settings);
+    $('duePreview').textContent = repeat
+      ? M.repeats[repeat] + (repeat === 'weekly' ? ' ' + weekdays[new Date(dueAt).getDay()] : '') + ' · Next: ' + fullDate(dueAt)
+      : d.text + ' · ' + (d.level === 'overdue' ? 'This date has already passed' : 'Color shifts automatically');
+    $('duePreview').className = 'due-preview'; $('duePreview').dataset.level = repeat ? 'future' : d.level;
+  } catch (_) { $('duePreview').textContent = ''; }
 }
-function openEditor(id = null, initial = '') {
+function openEditor(id = null, initial = '', initialNote = '') {
   if (!state) return;
-  command('modal-open',true);
-  if (current.collapsed) command('collapse',false);
+  command('modal-open', true);
+  if (current.collapsed) command('collapse', false);
   if ($('settingsDialog').open) $('settingsDialog').close();
   const t = id ? state.tasks.find(t => t.id === id) : null; if (id && !t) return;
   editId = id; lastFocus = document.activeElement;
-  $('editorHeading').textContent = id ? '再整理一下' : '记一件事';
-  $('taskTitle').value = t ? t.title : initial;
-  $('taskNote').value = t ? t.note : '';
-  $('taskImportant').checked = t ? t.important : false;
-  $('repeatSelect').value = t ? t.repeat || '' : tab === 'repeat' ? 'daily' : '';
+  const parsed = !t && initial && !quickRawMode && tab !== 'sticky' ? M.parseQuickInput(initial) : null;
+  $('editorHeading').textContent = id ? 'Edit Task' : 'New Task';
+  $('taskTitle').value = t ? t.title : (parsed?.parsed ? parsed.title : initial);
+  $('taskNote').value = t ? t.note : initialNote;
+  $('taskImportant').checked = t ? t.important : !!(parsed?.important);
+  $('repeatSelect').value = t ? t.repeat || '' : (parsed?.repeat || (tab === 'repeat' ? 'daily' : ''));
   $('repeatSelect').disabled = !!t?.occurrenceOf;
-  $('hasDue').checked = !!(t && t.dueAt) || (!t && tab === 'ddl');
-  const date = t && t.dueAt ? new Date(t.dueAt) : new Date();
-  $('dueDate').value = localDate(date); $('dueTime').value = t && t.dueAt ? pad(date.getHours()) + ':' + pad(date.getMinutes()) : tab === 'repeat' ? '09:00' : '23:59';
-  setKind(t ? t.kind : tab === 'sticky' ? 'sticky' : 'task'); dateFields();
+  const effectiveDue = t ? t.dueAt : (parsed?.dueAt || null);
+  $('hasDue').checked = !!effectiveDue || (!t && tab === 'ddl');
+  const date = effectiveDue ? new Date(effectiveDue) : new Date();
+  $('dueDate').value = localDate(date);
+  $('dueTime').value = effectiveDue ? pad(date.getHours()) + ':' + pad(date.getMinutes()) : ($('repeatSelect').value ? '09:00' : '23:59');
+  setKind(t ? t.kind : (parsed?.kind === 'sticky' || tab === 'sticky' ? 'sticky' : 'task')); dateFields();
   $('editActions').hidden = !t; $('completeTask').hidden = !!t?.occurrenceOf;
-  $('completeTask').textContent = t && t.completedAt ? '恢复到清单' : t && t.kind === 'sticky' ? '归档这条提醒' : t && t.repeat ? '完成本次' : '标记完成';
-  $('saveTask').replaceChildren(document.createTextNode(id ? '保存修改 ' : '记下来 '),icon('arrow'));
+  $('completeTask').textContent = t && t.completedAt ? 'Restore to list' : t && t.kind === 'sticky' ? 'Archive note' : t && t.repeat ? 'Complete occurrence' : 'Mark complete';
+  $('saveTask').replaceChildren(document.createTextNode(id ? 'Save Changes ' : 'Save Task '), icon('arrow'));
   $('saveTask').disabled = false; $('editorError').hidden = true;
   $('editorDialog').showModal(); $('editorDialog').querySelector('.sheet-body').scrollTop = 0;
-  setTimeout(() => { $('taskTitle').focus(); if (!id) $('taskTitle').setSelectionRange($('taskTitle').value.length,$('taskTitle').value.length); },60);
+  setTimeout(() => { $('taskTitle').focus(); if (!id) $('taskTitle').setSelectionRange($('taskTitle').value.length, $('taskTitle').value.length); }, 60);
 }
 function closeEditor() { $('editorDialog').close(); editId = null; if (lastFocus && lastFocus.isConnected) lastFocus.focus(); }
 function renderSettings() {
   const s = state.settings;
-  document.querySelectorAll('[data-theme]').forEach(n => { if (n.tagName === 'BUTTON') n.classList.toggle('selected',n.dataset.theme === s.theme); });
-  document.querySelectorAll('[data-accent]').forEach(n => { if (n.tagName === 'BUTTON') n.classList.toggle('selected',n.dataset.accent === s.accent); });
-  for (const id of ['reminders','alwaysOnTop','launchOnStartup','autoTuck']) $(id).checked = s[id];
+  document.querySelectorAll('[data-theme]').forEach(n => { if (n.tagName === 'BUTTON') n.classList.toggle('selected', n.dataset.theme === s.theme); });
+  document.querySelectorAll('[data-accent]').forEach(n => { if (n.tagName === 'BUTTON') n.classList.toggle('selected', n.dataset.accent === s.accent); });
+  for (const id of ['reminders', 'alwaysOnTop', 'launchOnStartup', 'autoTuck', 'hideFromCapture']) $(id).checked = s[id];
   $('warnDays').value = s.warnDays; $('urgentHours').value = s.urgentHours;
   if (document.activeElement !== $('opacityRange')) $('opacityRange').value = Math.round(s.opacity * 100);
   $('opacityValue').textContent = Math.round(s.opacity * 100) + '%';
   $('clearButton').disabled = !state.tasks.some(t => t.completedAt);
-  $('shortcutHint').textContent = current.shortcutAvailable ? 'Ctrl + Alt + Q 唤回 / 隐藏 · Ctrl + N 新建' : 'Ctrl + Alt + Q 被其他程序占用，可点托盘图标唤回。';
+  const qHint = current.shortcutAvailable ? 'Ctrl+Alt+Q toggle' : 'Ctrl+Alt+Q unavailable (use tray)';
+  const gHint = current.ghostShortcutAvailable !== false ? 'Ctrl+Alt+G ghost' : 'Ghost via tray';
+  $('shortcutHint').textContent = qHint + ' · ' + gHint + ' · Ctrl+N new';
 }
 function showSearch() { $('searchRow').hidden = false; $('searchInput').focus(); }
 function closeSearch() { query = ''; $('searchInput').value = ''; $('searchRow').hidden = true; renderList(); }
+
 fillIcons();
-$('pinButton').addEventListener('click',() => act({ type:'settings', settings:{ alwaysOnTop:!state.settings.alwaysOnTop } }));
-$('dockButton').addEventListener('click',() => command('tuck',true));
-$('edgeOpen').addEventListener('click',() => command('tuck',false));
-$('quietButton').addEventListener('click',() => command('away',15));
-$('stickyToggle').addEventListener('click',() => act({ type:'settings', settings:{ stickyCollapsed:!state.settings.stickyCollapsed } }));
-$('viewSticky').addEventListener('click',() => { tab = 'sticky'; render(); });
-$('addSticky').addEventListener('click',() => { openEditor(); setKind('sticky'); dateFields(); });
-$('collapseButton').addEventListener('click',() => command('collapse',!current.collapsed));
-$('compactView').addEventListener('click',() => command('collapse',false));
-$('hideButton').addEventListener('click',() => command('hide'));
-document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click',() => { tab = button.dataset.tab; $('listArea').scrollTop = 0; render(); }));
-$('searchButton').addEventListener('click',showSearch); $('searchClose').addEventListener('click',closeSearch);
-$('searchInput').addEventListener('input',event => { query = event.target.value; renderList(); });
-$('detailAdd').addEventListener('click',() => openEditor(null,$('quickInput').value.trim()));
-$('emptyAdd').addEventListener('click',() => openEditor());
-let composing = false;
-$('quickInput').addEventListener('compositionstart',() => composing = true);
-$('quickInput').addEventListener('compositionend',() => { setTimeout(() => composing = false,0); });
-$('quickInput').addEventListener('keydown',event => { if (event.key === 'Enter' && (event.isComposing || event.keyCode === 229 || composing)) event.preventDefault(); });
-$('quickForm').addEventListener('submit',async event => {
-  event.preventDefault(); if (composing || busy) return;
-  const title = $('quickInput').value.trim(); if (!title) { openEditor(); return; }
-  if (tab === 'ddl' || tab === 'repeat') { openEditor(null,title); return; }
-  const result = await act({ type:'add', task:{ title, kind:tab === 'sticky' ? 'sticky' : 'task' } });
-  if (result) { $('quickInput').value = ''; if (tab === 'done') { tab = 'all'; render(); } $('quickInput').focus(); }
+$('stealthButton').addEventListener('click', () => act({ type: 'settings', settings: { hideFromCapture: !state.settings.hideFromCapture } }, !state.settings.hideFromCapture ? 'Hidden from screen share.' : 'Visible to screen share again.'));
+$('ghostButton').addEventListener('click', () => command('ghost', !current.ghost));
+$('pinButton').addEventListener('click', () => act({ type: 'settings', settings: { alwaysOnTop: !state.settings.alwaysOnTop } }));
+$('dockButton').addEventListener('click', () => command('tuck', true));
+$('edgeOpen').addEventListener('click', () => command('tuck', false));
+$('quietButton').addEventListener('click', () => command('away', 15));
+$('stickyToggle').addEventListener('click', () => act({ type: 'settings', settings: { stickyCollapsed: !state.settings.stickyCollapsed } }));
+$('viewSticky').addEventListener('click', () => { tab = 'sticky'; render(); });
+$('addSticky').addEventListener('click', () => { openEditor(); setKind('sticky'); dateFields(); });
+$('collapseButton').addEventListener('click', () => { if (focusTaskId) void exitFocus(true); else command('collapse', !current.collapsed); });
+$('compactView').addEventListener('click', () => { if (!focusTaskId) command('collapse', false); });
+$('compactView').addEventListener('keydown', e => { if (!focusTaskId && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); command('collapse', false); } });
+$('focusToggle').addEventListener('click', e => { e.stopPropagation(); if (focusRunning) stopFocusTimer(); else startFocusTimer(); setIcon('focusToggle', focusRunning ? 'pause' : 'play'); });
+$('focusDone').addEventListener('click', async e => {
+  e.stopPropagation();
+  const id = focusTaskId;
+  if (!id) return;
+  await exitFocus(true);
+  await act({ type: 'toggle', id }, 'Focused task completed.');
 });
-document.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click',() => { setKind(button.dataset.kind); dateFields(); }));
-$('hasDue').addEventListener('change',dateFields);
-$('repeatSelect').addEventListener('change',() => { if ($('repeatSelect').value && $('dueTime').value === '23:59') $('dueTime').value = '09:00'; dateFields(); });
-for (const id of ['dueDate','dueTime']) $(id).addEventListener('input',previewDate);
-document.querySelectorAll('[data-days]').forEach(button => button.addEventListener('click',() => { const d = new Date(); d.setDate(d.getDate()+Number(button.dataset.days)); $('dueDate').value = localDate(d); previewDate(); }));
-document.querySelectorAll('.close-editor').forEach(button => button.addEventListener('click',closeEditor));
-$('editorDialog').addEventListener('cancel',() => { editId = null; });
-for (const id of ['editorDialog','settingsDialog']) $(id).addEventListener('close',() => command('modal-open',$('editorDialog').open || $('settingsDialog').open));
-$('editorForm').addEventListener('submit',async event => {
+$('focusExit').addEventListener('click', e => { e.stopPropagation(); void exitFocus(true); });
+$('hideButton').addEventListener('click', () => command('hide'));
+document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => { tab = button.dataset.tab; $('listArea').scrollTop = 0; render(); }));
+$('searchButton').addEventListener('click', showSearch); $('searchClose').addEventListener('click', closeSearch);
+$('searchInput').addEventListener('input', event => { query = event.target.value; renderList(); });
+$('detailAdd').addEventListener('click', () => openEditor(null, $('quickInput').value.trim()));
+$('emptyAdd').addEventListener('click', () => openEditor());
+$('quickRawToggle').addEventListener('click', () => { quickRawMode = !quickRawMode; renderQuickPreview(); $('quickInput').focus(); });
+$('quickInput').addEventListener('input', () => { if (!$('quickInput').value.trim()) quickRawMode = false; renderQuickPreview(); });
+
+let composing = false;
+$('quickInput').addEventListener('compositionstart', () => composing = true);
+$('quickInput').addEventListener('compositionend', () => { setTimeout(() => composing = false, 0); });
+$('quickInput').addEventListener('keydown', event => { if (event.key === 'Enter' && (event.isComposing || event.keyCode === 229 || composing)) event.preventDefault(); });
+$('quickForm').addEventListener('submit', async event => {
+  event.preventDefault(); if (composing || busy) return;
+  const raw = $('quickInput').value.trim(); if (!raw) { openEditor(); return; }
+  const parsed = !quickRawMode && tab !== 'sticky' ? M.parseQuickInput(raw) : { title: raw, kind: tab === 'sticky' ? 'sticky' : 'task', dueAt: null, repeat: null, important: false, parsed: false };
+  if (!parsed.parsed && (tab === 'ddl' || tab === 'repeat')) { openEditor(null, raw); return; }
+  const nextTask = {
+    title: parsed.title,
+    kind: parsed.parsed ? parsed.kind : (tab === 'sticky' ? 'sticky' : 'task'),
+    dueAt: parsed.dueAt || null,
+    repeat: parsed.repeat || null,
+    important: !!parsed.important
+  };
+  const label = parsed.parsed ? (nextTask.kind === 'sticky' ? 'Pinned.' : nextTask.repeat ? 'Routine scheduled.' : 'Task saved.') : undefined;
+  const result = await act({ type: 'add', task: nextTask }, label);
+  if (result) {
+    $('quickInput').value = ''; quickRawMode = false; renderQuickPreview();
+    if (
+      tab === 'done' ||
+      (tab === 'ddl' && (nextTask.kind === 'sticky' || !nextTask.dueAt || nextTask.repeat)) ||
+      (tab === 'sticky' && nextTask.kind !== 'sticky') ||
+      (tab === 'repeat' && !nextTask.repeat)
+    ) {
+      tab = nextTask.kind === 'sticky' ? 'sticky' : nextTask.repeat ? 'repeat' : 'all';
+      render();
+    }
+    $('quickInput').focus();
+  }
+});
+
+// Drag-and-drop URL or text onto window or 46px edge tab to capture instantly.
+// Native drag-and-drop inside open dialogs or text inputs is never intercepted.
+let dragDepth = 0;
+const hasDropText = dt => dt && (dt.types.includes('text/plain') || dt.types.includes('text/uri-list'));
+const isDropBlocked = e => $('editorDialog').open || $('settingsDialog').open || (e.target instanceof Element && !!e.target.closest('input, textarea, [contenteditable]'));
+document.addEventListener('dragenter', e => {
+  if (isDropBlocked(e) || !hasDropText(e.dataTransfer)) return;
+  e.preventDefault(); dragDepth += 1; $('dropHint').hidden = false;
+});
+document.addEventListener('dragover', e => {
+  if (isDropBlocked(e) || !hasDropText(e.dataTransfer)) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+});
+document.addEventListener('dragleave', e => {
+  if (isDropBlocked(e) || !hasDropText(e.dataTransfer)) return;
+  dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('dropHint').hidden = true;
+});
+document.addEventListener('drop', async e => {
+  if (isDropBlocked(e) || !hasDropText(e.dataTransfer)) return;
+  e.preventDefault(); dragDepth = 0; $('dropHint').hidden = true;
+  const uri = (e.dataTransfer.getData('text/uri-list') || '').split(/\r?\n/).find(l => l && !l.startsWith('#')) || '';
+  const text = (e.dataTransfer.getData('text/plain') || '').trim();
+  const payloadText = text || uri;
+  if (!payloadText) return;
+  if (current.tucked) await command('tuck', false);
+  if (current.collapsed) await command('collapse', false);
+  const firstLine = payloadText.split(/\r?\n/)[0].trim().slice(0, 140);
+  const rawNote = uri && uri !== firstLine ? uri : (payloadText.length > firstLine.length ? payloadText : '');
+  const extraNote = rawNote.slice(0, 5000);
+  openEditor(null, firstLine, extraNote);
+});
+
+document.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => { setKind(button.dataset.kind); dateFields(); }));
+$('hasDue').addEventListener('change', dateFields);
+$('repeatSelect').addEventListener('change', () => { if ($('repeatSelect').value && $('dueTime').value === '23:59') $('dueTime').value = '09:00'; dateFields(); });
+for (const id of ['dueDate', 'dueTime']) $(id).addEventListener('input', previewDate);
+document.querySelectorAll('[data-days]').forEach(button => button.addEventListener('click', () => { const d = new Date(); d.setDate(d.getDate() + Number(button.dataset.days)); $('dueDate').value = localDate(d); previewDate(); }));
+document.querySelectorAll('.close-editor').forEach(button => button.addEventListener('click', closeEditor));
+$('editorDialog').addEventListener('cancel', () => { editId = null; });
+for (const id of ['editorDialog', 'settingsDialog']) $(id).addEventListener('close', () => command('modal-open', $('editorDialog').open || $('settingsDialog').open));
+$('editorForm').addEventListener('submit', async event => {
   event.preventDefault(); if (busy) return;
   try {
     $('editorError').hidden = true;
     const repeat = editKind === 'task' ? $('repeatSelect').value || null : null;
-    let dueAt = editorDue(); if (repeat) dueAt = M.nextRepeat(dueAt,repeat,Date.now(),true);
-    const task = { title:$('taskTitle').value.trim(), note:$('taskNote').value, kind:editKind, dueAt, repeat, important:$('taskImportant').checked };
-    if (!task.title) throw new Error('先写下这件事的名字吧。');
+    let dueAt = editorDue(); if (repeat) dueAt = M.nextRepeat(dueAt, repeat, Date.now(), true);
+    const task = { title: $('taskTitle').value.trim(), note: $('taskNote').value, kind: editKind, dueAt, repeat, important: $('taskImportant').checked };
+    if (!task.title) throw new Error('Please enter a task title.');
     $('saveTask').disabled = true;
     const wasEdit = !!editId;
-    const result = await act(wasEdit ? { type:'update', id:editId, task } : { type:'add', task });
-    if (result) { closeEditor(); $('quickInput').value = ''; if (tab === 'done' && !wasEdit || tab === 'ddl' && (task.kind === 'sticky' || task.repeat) || tab === 'sticky' && task.kind !== 'sticky' || tab === 'repeat' && !task.repeat) { tab = task.kind === 'sticky' ? 'sticky' : task.repeat ? 'repeat' : 'all'; render(); } toast(wasEdit ? '修改已保存' : task.repeat ? '已安排循环提醒。' : '记下了，留在桌边。',true); }
-  } catch(error) { errorMessage(error); }
+    const result = await act(wasEdit ? { type: 'update', id: editId, task } : { type: 'add', task });
+    if (result) {
+      closeEditor(); $('quickInput').value = ''; quickRawMode = false; renderQuickPreview();
+      if (tab === 'done' && !wasEdit || tab === 'ddl' && (task.kind === 'sticky' || task.repeat) || tab === 'sticky' && task.kind !== 'sticky' || tab === 'repeat' && !task.repeat) {
+        tab = task.kind === 'sticky' ? 'sticky' : task.repeat ? 'repeat' : 'all'; render();
+      }
+      toast(wasEdit ? 'Changes saved.' : task.repeat ? 'Routine scheduled.' : 'Saved to your bar.', true);
+    }
+  } catch (error) { errorMessage(error); }
   finally { $('saveTask').disabled = false; }
 });
-$('deleteTask').addEventListener('click',async () => { if (editId && await act({ type:'delete', id:editId })) { closeEditor(); toast('已删除这条记录',true); } });
-$('completeTask').addEventListener('click',async () => { if (editId && await act({ type:'toggle', id:editId })) { closeEditor(); toast('清单已更新',true); } });
-async function undo() { if (await act({ type:'undo' })) toast('已撤销上一步'); }
-$('undoButton').addEventListener('click',undo); $('toastUndo').addEventListener('click',undo); $('toastClose').addEventListener('click',() => $('toast').hidden = true);
-$('settingsButton').addEventListener('click',() => { command('modal-open',true); $('settingsError').hidden = true; $('settingsDialog').showModal(); renderSettings(); });
-$('closeSettings').addEventListener('click',() => $('settingsDialog').close());
-document.querySelectorAll('button[data-theme]').forEach(button => button.addEventListener('click',() => act({ type:'settings', settings:{ theme:button.dataset.theme } })));
-document.querySelectorAll('button[data-accent]').forEach(button => button.addEventListener('click',() => act({ type:'settings', settings:{ accent:button.dataset.accent } })));
-for (const id of ['alwaysOnTop','reminders','launchOnStartup','autoTuck']) $(id).addEventListener('change',() => act({ type:'settings', settings:{ [id]:$(id).checked } }));
-for (const id of ['warnDays','urgentHours']) $(id).addEventListener('change',() => act({ type:'settings', settings:{ [id]:Number($(id).value) } }));
-$('opacityRange').addEventListener('input',() => $('opacityValue').textContent = $('opacityRange').value + '%');
-$('opacityRange').addEventListener('change',() => act({ type:'settings', settings:{ opacity:Number($('opacityRange').value)/100 } }));
-$('exportButton').addEventListener('click',async () => { const r = await command('export'); if (r && r.ok) { $('settingsDialog').close(); toast('备份已导出'); } });
-$('importButton').addEventListener('click',async () => { const r = await command('import'); if (r && r.ok) { $('settingsDialog').close(); toast('已恢复备份',true); } });
-$('folderButton').addEventListener('click',() => command('folder'));
-$('clearButton').addEventListener('click',async () => { const r = await command('clear-completed'); if (r && !r.canceled) { $('settingsDialog').close(); toast('已清理完成记录',true); } });
-$('quitButton').addEventListener('click',() => command('quit'));
-document.addEventListener('keydown',event => {
+$('deleteTask').addEventListener('click', async () => { if (editId && await act({ type: 'delete', id: editId })) { closeEditor(); toast('Task deleted.', true); } });
+$('completeTask').addEventListener('click', async () => { if (editId && await act({ type: 'toggle', id: editId })) { closeEditor(); toast('Task updated.', true); } });
+async function undo() { if (await act({ type: 'undo' })) toast('Undid last action.'); }
+$('undoButton').addEventListener('click', undo); $('toastUndo').addEventListener('click', undo); $('toastClose').addEventListener('click', () => $('toast').hidden = true);
+$('settingsButton').addEventListener('click', () => { command('modal-open', true); $('settingsError').hidden = true; $('settingsDialog').showModal(); renderSettings(); });
+$('closeSettings').addEventListener('click', () => $('settingsDialog').close());
+document.querySelectorAll('button[data-theme]').forEach(button => button.addEventListener('click', () => act({ type: 'settings', settings: { theme: button.dataset.theme } })));
+document.querySelectorAll('button[data-accent]').forEach(button => button.addEventListener('click', () => act({ type: 'settings', settings: { accent: button.dataset.accent } })));
+for (const id of ['alwaysOnTop', 'reminders', 'launchOnStartup', 'autoTuck', 'hideFromCapture']) $(id).addEventListener('change', () => act({ type: 'settings', settings: { [id]: $(id).checked } }));
+for (const id of ['warnDays', 'urgentHours']) $(id).addEventListener('change', () => act({ type: 'settings', settings: { [id]: Number($(id).value) } }));
+$('opacityRange').addEventListener('input', () => $('opacityValue').textContent = $('opacityRange').value + '%');
+$('opacityRange').addEventListener('change', () => act({ type: 'settings', settings: { opacity: Number($('opacityRange').value) / 100 } }));
+$('exportButton').addEventListener('click', async () => { const r = await command('export'); if (r && r.ok) { $('settingsDialog').close(); toast('JSON backup exported.'); } });
+$('importButton').addEventListener('click', async () => { const r = await command('import'); if (r && r.ok) { $('settingsDialog').close(); toast('Backup restored.', true); } });
+$('exportMdButton').addEventListener('click', async () => { const r = await command('export-md'); if (r && r.ok) { $('settingsDialog').close(); toast('Exported Markdown checklist.'); } });
+$('folderButton').addEventListener('click', () => command('folder'));
+$('clearButton').addEventListener('click', async () => { const r = await command('clear-completed'); if (r && !r.canceled) { $('settingsDialog').close(); toast('Cleared completed records.', true); } });
+$('quitButton').addEventListener('click', () => command('quit'));
+document.addEventListener('keydown', event => {
   if (event.isComposing) return;
-  const editable = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
+  const editable = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'n') { event.preventDefault(); if (!$('editorDialog').open) openEditor(); }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && !$('editorDialog').open && !$('settingsDialog').open) { event.preventDefault(); if (current.collapsed) command('collapse',false); showSearch(); }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && !$('editorDialog').open && !$('settingsDialog').open) { event.preventDefault(); if (current.collapsed) command('collapse', false); showSearch(); }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editable && !$('editorDialog').open && !$('settingsDialog').open) { event.preventDefault(); undo(); }
-  if (event.key === 'Escape' && !$('editorDialog').open && !$('settingsDialog').open) { if (!$('searchRow').hidden) closeSearch(); $('toast').hidden = true; }
+  if (event.key === 'Escape' && !$('editorDialog').open && !$('settingsDialog').open) {
+    if (current.ghost) { event.preventDefault(); void command('ghost', false); return; }
+    if (!$('searchRow').hidden) closeSearch();
+    $('toast').hidden = true;
+  }
 });
 if (!window.qingdan) {
-  $('emptyState').hidden = false; $('emptyTitle').textContent = '请从轻单程序打开'; $('emptyDescription').textContent = '这是桌面程序的一部分，请双击 Qingdan.exe。'; $('emptyAdd').hidden = true;
+  $('emptyState').hidden = false; $('emptyTitle').textContent = 'Launch from Qingdan Desktop'; $('emptyDescription').textContent = 'This UI runs inside the desktop app. Launch Qingdan.exe to use it.'; $('emptyAdd').hidden = true;
 } else {
   window.qingdan.read().then(accept).catch(errorMessage);
-  window.qingdan.onState(data => { try { accept(data); } catch(error) { errorMessage(error); } });
+  window.qingdan.onState(data => { try { accept(data); } catch (error) { errorMessage(error); } });
   window.qingdan.onError(message => errorMessage(new Error(message)));
   window.qingdan.onFocusAdd(() => { if (!$('editorDialog').open && !$('settingsDialog').open) $('quickInput').focus(); });
   // A deadline can change category while the window stays open or after sleep.
-  setInterval(() => { if (state && !document.hidden) { render(); if ($('editorDialog').open) previewDate(); } },15000);
-  document.addEventListener('visibilitychange',() => { if (!document.hidden && state) render(); });
+  setInterval(() => { if (state && !document.hidden) { render(); if ($('editorDialog').open) previewDate(); } }, 15000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && state) render(); });
 }

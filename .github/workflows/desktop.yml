@@ -23,7 +23,7 @@ jobs:
           package-manager-cache: false
       - run: npm ci
       - run: npm test
-      - name: Install Chinese fonts for Linux screenshots
+      - name: Install system fonts for Linux screenshots
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
       - name: Check actual Electron interactions on Linux
@@ -82,4 +82,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(node -p "require('./package.json').version")
-          gh release create "v$version" release/*.zip release/SHA256SUMS.txt --target "$GITHUB_SHA" --title "轻单 Qingdan $version" --notes-file "docs/releases/$version.md"
+          gh release create "v$version" release/*.zip release/SHA256SUMS.txt --target "$GITHUB_SHA" --title "Qingdan $version" --notes-file "docs/releases/$version.md"

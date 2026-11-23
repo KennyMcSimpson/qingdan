@@ -51,17 +51,17 @@ appdir = folder / 'resources' / 'app'
 appdir.mkdir(parents=True)
 for name in ['src', 'assets', 'tests', 'scripts', 'docs']:
     shutil.copytree(ROOT / name, appdir / name)
-for name in ['package.json', 'package-lock.json', 'README.md', 'README.en.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'LICENSE', 'VALIDATION.md', 'REFERENCES.md']:
+for name in ['package.json', 'package-lock.json', 'README.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'LICENSE', 'VALIDATION.md', 'REFERENCES.md']:
     if (ROOT / name).exists():
         shutil.copy2(ROOT / name, appdir / name)
-for name in ['使用说明.txt', 'VALIDATION.md']:
+for name in ['QUICKSTART.txt', 'VALIDATION.md']:
     if (ROOT / name).exists():
         shutil.copy2(ROOT / name, folder / name)
 shutil.copy2(ROOT / 'LICENSE', folder / 'LICENSE-Qingdan.txt')
-with (folder / '启动轻单.cmd').open('w', encoding='utf-8', newline='') as f:
+with (folder / 'Launch-Qingdan.cmd').open('w', encoding='utf-8', newline='') as f:
     f.write('@echo off\r\ncd /d "%~dp0"\r\nstart "" "%~dp0Qingdan.exe"\r\n')
 for locale in (folder / 'locales').glob('*.pak'):
-    if locale.name not in ['en-US.pak','en-GB.pak','zh-CN.pak','zh-TW.pak']:
+    if locale.name not in ['en-US.pak','en-GB.pak']:
         locale.unlink()
 manifest = {}
 for file in sorted(folder.rglob('*')):
