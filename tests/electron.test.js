@@ -118,7 +118,7 @@ async function main() {
     const info = await page.evaluate(() => window.qingdan.read());
     if (info.ghostShortcutAvailable || info.shortcutAvailable || info.trayAvailable) {
       const on = await page.evaluate(() => window.qingdan.command('ghost', true));
-      assert.equal(on.ghost, true);
+      assert.equal(on.ghost, true, JSON.stringify(on));
       await page.waitForFunction(() => !document.querySelector('#ghostBanner').hidden);
       await page.keyboard.press('Escape');
       await page.waitForFunction(() => document.querySelector('#ghostBanner').hidden);

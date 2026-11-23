@@ -421,7 +421,7 @@ function openEditor(id = null, initial = '', initialNote = '') {
   $('editorDialog').showModal(); $('editorDialog').querySelector('.sheet-body').scrollTop = 0;
   setTimeout(() => { $('taskTitle').focus(); if (!id) $('taskTitle').setSelectionRange($('taskTitle').value.length, $('taskTitle').value.length); }, 60);
 }
-function closeEditor() { $('editorDialog').close(); editId = null; if (lastFocus && lastFocus.isConnected) lastFocus.focus(); }
+function closeEditor() { $('editorDialog').close(); editId = null; command('modal-open', $('settingsDialog').open); if (lastFocus && lastFocus.isConnected) lastFocus.focus(); }
 function renderSettings() {
   const s = state.settings;
   document.querySelectorAll('[data-theme]').forEach(n => { if (n.tagName === 'BUTTON') n.classList.toggle('selected', n.dataset.theme === s.theme); });
@@ -568,7 +568,7 @@ $('completeTask').addEventListener('click', async () => { if (editId && await ac
 async function undo() { if (await act({ type: 'undo' })) toast('Undid last action.'); }
 $('undoButton').addEventListener('click', undo); $('toastUndo').addEventListener('click', undo); $('toastClose').addEventListener('click', () => $('toast').hidden = true);
 $('settingsButton').addEventListener('click', () => { command('modal-open', true); $('settingsError').hidden = true; $('settingsDialog').showModal(); renderSettings(); });
-$('closeSettings').addEventListener('click', () => $('settingsDialog').close());
+$('closeSettings').addEventListener('click', () => { $('settingsDialog').close(); command('modal-open', $('editorDialog').open); });
 document.querySelectorAll('button[data-theme]').forEach(button => button.addEventListener('click', () => act({ type: 'settings', settings: { theme: button.dataset.theme } })));
 document.querySelectorAll('button[data-accent]').forEach(button => button.addEventListener('click', () => act({ type: 'settings', settings: { accent: button.dataset.accent } })));
 for (const id of ['alwaysOnTop', 'reminders', 'launchOnStartup', 'autoTuck', 'hideFromCapture']) $(id).addEventListener('change', () => act({ type: 'settings', settings: { [id]: $(id).checked } }));
