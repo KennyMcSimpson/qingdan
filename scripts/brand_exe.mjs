@@ -16,7 +16,7 @@ const versions = ResEdit.Resource.VersionInfo.fromEntries(res.entries);
 const version = JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8')).version.split('.').map(Number);
 for (const v of versions) {
   v.setFileVersion(...version,0,1033); v.setProductVersion(...version,0,1033);
-  v.setStringValues({lang:1033,codepage:1200},{ FileDescription:'轻单 · 桌边待办', ProductName:'轻单 Qingdan', CompanyName:'Qingdan', InternalName:'Qingdan', OriginalFilename:'Qingdan.exe', LegalCopyright:'Copyright (c) 2026 Qingdan contributors. MIT License.' });
+  v.setStringValues({lang:1033,codepage:1200},{ FileDescription:'Qingdan · Ambient Deadline Bar', ProductName:'Qingdan', CompanyName:'Qingdan', InternalName:'Qingdan', OriginalFilename:'Qingdan.exe', LegalCopyright:'Copyright (c) 2026 Qingdan contributors. MIT License.' });
   v.outputToResourceEntries(res.entries);
 }
 res.outputResource(exe);

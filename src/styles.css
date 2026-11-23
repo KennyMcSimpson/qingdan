@@ -32,3 +32,38 @@
 @media(max-height:580px){.intro{padding-top:4px;padding-bottom:10px}.intro h1{font-size:18px}.sticky-shelf{margin-top:9px}#shelfBody{max-height:88px}.shelf-row .task-note{display:none}.task-row{padding:8px 0}.task-group+.task-group{margin-top:13px}.legend{font-size:9px}.brand-en{display:none}}
 @media(max-width:370px){.brand-en{display:none}.tab{gap:3px;font-size:10px}.summary{font-size:9px}.intro h1{font-size:18px}.repeat-line select{font-size:10px;max-width:74%}}
 @media(max-height:500px){.titlebar{height:42px}.intro{position:relative;padding:3px 22px 8px}.intro-heading{position:absolute;right:20px;top:0;margin:0}.intro-heading h1{display:none}.intro .eyebrow{padding-right:24px;font-size:9px}.intro .summary{margin-top:5px;font-size:9px}.tabs{height:30px}.sticky-shelf{margin-top:8px}.shelf-heading{min-height:28px}#shelfBody{max-height:42px}.shelf-row{padding:7px 0}.shelf-row .task-note{display:none}.legend{margin-top:2px;margin-bottom:7px}.legend-auto{display:none}.quick-add{padding-top:5px;padding-bottom:5px}.quick-add input{height:28px}.footer{height:34px}}
+
+/* 1.2: English typography, stealth/ghost mode, NLP quick preview, runway bar, snooze & focus strip. */
+:root{font-family:"Segoe UI","Inter",QingdanUI,system-ui,sans-serif}
+.brand>span:not(.stealth-pill){letter-spacing:.4px}
+.stealth-pill{font-size:8px;font-weight:600;letter-spacing:1.1px;padding:2px 5px;border-radius:4px;background:var(--accent-tint);color:var(--accent-strong);margin-left:2px}
+.ghost-banner{margin:0 21px 6px;padding:5px 10px;border-radius:7px;background:var(--accent-tint);color:var(--accent-strong);font-size:10px;display:flex;align-items:center;gap:6px;flex:none}
+.ghost-banner svg{width:13px;height:13px}
+.ghost-mode .window-controls,.ghost-mode .quick-add,.ghost-mode .footer{opacity:.55}
+.edge-name{font-size:9px;letter-spacing:1.4px}
+.edge-view[data-level=overdue]{border-color:var(--overdue)}
+.edge-view[data-level=urgent]{border-color:var(--urgent)}
+.row-actions{display:flex;align-items:center;gap:3px;flex:none;margin-right:-4px}
+.micro-chip{font-size:9px;padding:3px 6px;border-radius:5px;background:var(--input);color:var(--muted);opacity:0;transition:opacity .15s,background .15s,color .15s;line-height:1.2}
+.task-row:hover .micro-chip,.micro-chip:focus-visible,.task-row:focus-within .micro-chip{opacity:1}
+.micro-chip:hover{background:var(--accent-tint);color:var(--accent-strong)}
+.task-row:focus-within .row-menu{opacity:1}
+.runway-bar{display:block;width:100%;height:2px;background:var(--line);border-radius:2px;margin-top:8px;overflow:hidden}
+.runway-bar>i{display:block;height:100%;border-radius:2px;background:var(--accent);opacity:.7;transition:width .3s}
+.runway-bar>i.level-soon{background:var(--soon)}
+.runway-bar>i.level-urgent{background:var(--urgent)}
+.runway-bar>i.level-overdue{background:var(--overdue);opacity:.9}
+.quick-preview{margin:0 23px 6px;padding:5px 9px;border-radius:8px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:6px;flex:none}
+.quick-chips{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.quick-chip{font-size:10px;padding:2px 7px;border-radius:5px;background:var(--accent-tint);color:var(--accent-strong);font-weight:500}
+.quick-chip.chip-important{background:var(--soon-bg);color:var(--soon)}
+.quick-chip.muted-chip{background:var(--input);color:var(--muted);font-weight:400}
+.quick-raw-toggle{font-size:9px;padding:2px 6px;border-radius:4px;color:var(--muted);background:var(--input);flex:none}
+.quick-raw-toggle:hover{color:var(--accent-strong);background:var(--accent-tint)}
+.focus-controls{display:flex;align-items:center;gap:2px;flex:none}
+.focus-timer{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--accent-strong);padding:0 5px}
+.compact-view.is-focusing{cursor:default}
+.drop-hint{position:fixed;inset:8px;border:2px dashed var(--accent);border-radius:12px;background:color-mix(in srgb,var(--bg) 92%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--accent-strong);font-size:12px;font-weight:500;pointer-events:none;z-index:50}
+.drop-hint svg{width:24px;height:24px}
+#exportMdButton{display:flex;margin-top:4px}
+@media(max-width:370px){.window-controls .icon-button{width:27px;height:27px}.stealth-pill{display:none}.micro-chip{padding:2px 5px}}

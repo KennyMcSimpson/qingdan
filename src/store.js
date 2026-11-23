@@ -25,10 +25,10 @@ class Store {
         const recovered = validateState(JSON.parse(fs.readFileSync(this.backup, 'utf8')));
         // Retain the valid backup: never back up a corrupt primary over it.
         this.write(recovered, false);
-        this.notice = '上次的数据文件异常，已从本地备份恢复。原文件也保留了。';
+        this.notice = 'Data file was damaged and has been recovered from local backup. The damaged file was retained.';
         return recovered;
       } catch (backupError) {
-        throw new Error('无法读取待办数据，已保留原文件。请检查数据文件夹或从导出的备份恢复。\n' + this.directory);
+        throw new Error('Could not read task data; original files were preserved. Check your data folder or restore from an exported backup.\n' + this.directory);
       }
     }
   }
@@ -51,7 +51,7 @@ class Store {
   snapshot(state, label = 'daily') {
     const dir = path.join(this.directory, 'backups'); fs.mkdirSync(dir, { recursive: true });
     const date = new Date().toISOString().slice(0, 10);
-    const name = label === 'daily' ? date + '-daily.json' : new Date().toISOString().replace(/[:.]/g,'-') + '-' + label + '.json';
+    const name = label === 'daily' ? date + '-daily.json' : new Date().toISOString().replace(/[:.]/g, '-') + '-' + label + '.json';
     const file = path.join(dir, name);
     if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify(validateState(state), null, 2), { encoding: 'utf8', mode: 0o600 });
     const all = fs.readdirSync(dir).filter(n => n.endsWith('.json')).sort();
