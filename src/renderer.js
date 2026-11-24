@@ -335,7 +335,13 @@ function render() {
 }
 
 function renderShelf(sticky) {
-  $('stickyShelf').hidden = tab !== 'all' || !sticky.length;
+  const showShelf = tab === 'all' && sticky.length > 0;
+  $('stickyShelf').hidden = !showShelf;
+  if (!showShelf) {
+    $('stickyItems').replaceChildren();
+    $('viewSticky').hidden = true;
+    return;
+  }
   $('shelfCount').textContent = sticky.length;
   $('shelfBody').hidden = state.settings.stickyCollapsed;
   $('stickyToggle').setAttribute('aria-expanded', String(!state.settings.stickyCollapsed));

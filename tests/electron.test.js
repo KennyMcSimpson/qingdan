@@ -130,6 +130,7 @@ async function main() {
     await page.waitForFunction(() => !document.querySelector('#searchOtherTabs').hidden);
     await page.locator('#searchOtherTabs .search-hint-pill', { hasText: 'Pinned (1)' }).click();
     await page.waitForFunction(() => document.querySelector('[data-tab=sticky]').classList.contains('active'));
+    assert.equal(await page.locator('#taskList .task-row').count(), 1);
     assert.equal(await page.locator('.task-row').count(), 1);
     await page.locator('#searchClose').click();
     await page.keyboard.press('Control+1');

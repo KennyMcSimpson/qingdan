@@ -108,4 +108,4 @@
 .note-link-pill svg{width:12px;height:12px}
 #noteLinkText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .quick-chip.chip-note{background:var(--input);color:var(--text)}
-@media(max-width:370px){.focus-controls .icon-button{width:24px;height:24px}.focus-timer{font-size:11px;padding:2px 3px}.brand>span.ghost-pill{max-width:none}}
+@media(max-width:370px){.titlebar{padding:0 12px 0 16px}.focus-controls .icon-button{width:24px;height:24px}.focus-timer{font-size:11px;padding:2px 3px}.brand>span.ghost-pill{max-width:none}}
