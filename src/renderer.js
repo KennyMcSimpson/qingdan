@@ -26,16 +26,32 @@ const icons = {
   ghost: '<path d="M9 10h.01M15 10h.01M12 3a7 7 0 0 0-7 7v10l2.5-2 2.25 2L12 18l2.25 2 2.25-2L19 20V10a7 7 0 0 0-7-7Z"/>',
   focus: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   play: '<polygon points="7 5 19 12 7 19 7 5"/>',
-  pause: '<path d="M8 5v14M16 5v14"/>'
+  pause: '<path d="M8 5v14M16 5v14"/>',
+  link: '<path d="M14 5h5v5M10 14 19 5M19 14v5H5V5h5"/>'
 };
 function icon(name) { const holder = document.createElement('span'); holder.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + (icons[name] || icons.plus) + '</svg>'; return holder.firstElementChild; }
 function fillIcons(root = document) { root.querySelectorAll('[data-icon]').forEach(node => node.replaceChildren(icon(node.dataset.icon))); }
 function el(tag, className, text) { const n = document.createElement(tag); if (className) n.className = className; if (text !== undefined) n.textContent = text; return n; }
 
+const FOCUS_PRESETS = [15, 25, 45, 60];
+const TAB_ORDER = ['all', 'ddl', 'repeat', 'sticky', 'done'];
+const TAB_LABELS = { all: 'All', ddl: 'DDL', repeat: 'Repeat', sticky: 'Pinned', done: 'Done' };
+function getFocusPresetMins() {
+  try {
+    const saved = Number(localStorage.getItem('edgewise-focus-mins'));
+    if (FOCUS_PRESETS.includes(saved)) return saved;
+  } catch (_) {}
+  return 25;
+}
+function setFocusPresetMins(mins) {
+  try { localStorage.setItem('edgewise-focus-mins', String(mins)); } catch (_) {}
+}
+
 let state, current = {}, tab = 'all', query = '', editId = null, editKind = 'task', toastTimer, lastFocus, busy = false;
 let suppressClickUntil = 0;
 let quickRawMode = false;
-let focusTaskId = null, focusSeconds = 25 * 60, focusEndAt = 0, focusRunning = false, focusTick = null;
+let kbSelectedId = null;
+let focusTaskId = null, focusTotalSeconds = getFocusPresetMins() * 60, focusSeconds = focusTotalSeconds, focusEndAt = 0, focusRunning = false, focusTick = null, enteringFocus = false;
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -76,6 +92,16 @@ function toast(text, undo = false, error = false) {
   toastTimer = setTimeout(() => $('toast').hidden = true, error ? 12000 : 6000);
 }
 
+function updateFocusProgress() {
+  const total = Math.max(1, focusTotalSeconds);
+  const elapsed = Math.min(total, Math.max(0, total - focusSeconds));
+  const pct = Math.round((elapsed / total) * 1000) / 10;
+  $('focusProgressFill').style.width = pct + '%';
+}
+function updateFocusTimerMeta() {
+  $('focusTimer').title = focusRunning ? 'Pause timer to switch duration (15 / 25 / 45 / 60m)' : 'Click to cycle duration (15 / 25 / 45 / 60m)';
+  $('focusTimer').setAttribute('aria-label', focusRunning ? 'Focus timer ' + formatTimer(focusSeconds) : 'Focus duration ' + formatTimer(focusSeconds) + ', click to cycle preset');
+}
 function stopFocusTimer() {
   if (focusTick) { clearInterval(focusTick); focusTick = null; }
   if (focusRunning && focusEndAt) {
@@ -83,34 +109,51 @@ function stopFocusTimer() {
   }
   focusEndAt = 0;
   focusRunning = false;
+  updateFocusProgress();
+  updateFocusTimerMeta();
 }
 function startFocusTimer() {
   stopFocusTimer();
-  if (focusSeconds <= 0) focusSeconds = 25 * 60;
+  if (focusSeconds <= 0) {
+    focusTotalSeconds = getFocusPresetMins() * 60;
+    focusSeconds = focusTotalSeconds;
+  }
   focusEndAt = Date.now() + focusSeconds * 1000;
   focusRunning = true;
   $('focusTimer').textContent = formatTimer(focusSeconds);
+  updateFocusProgress();
+  updateFocusTimerMeta();
   focusTick = setInterval(() => {
     if (!focusTaskId) { stopFocusTimer(); return; }
     focusSeconds = Math.max(0, Math.ceil((focusEndAt - Date.now()) / 1000));
     $('focusTimer').textContent = formatTimer(focusSeconds);
+    updateFocusProgress();
     if (focusSeconds <= 0) {
       stopFocusTimer();
       setIcon('focusToggle', 'play');
+      const mins = Math.max(1, Math.round(focusTotalSeconds / 60));
       const taskObj = state?.tasks.find(t => t.id === focusTaskId);
-      void command('focus-done', taskObj ? 'Completed 25m focus: ' + taskObj.title : '25-minute focus session finished.');
+      void command('focus-done', taskObj ? 'Completed ' + mins + 'm focus: ' + taskObj.title : mins + '-minute focus session finished.');
       toast('Focus session finished.', false);
     }
   }, 500);
 }
 async function enterFocus(taskId) {
-  const res = await command('collapse', true);
-  if (!res || !res.collapsed) return;
-  focusTaskId = taskId;
-  focusSeconds = 25 * 60;
-  await command('focus-mode', true);
-  startFocusTimer();
-  render();
+  if (enteringFocus) return;
+  enteringFocus = true;
+  try {
+    const res = await command('collapse', true);
+    if (!res || !res.collapsed) return;
+    const fRes = await command('focus-mode', true);
+    if (!fRes || !fRes.focusActive || !fRes.collapsed || fRes.tucked) return;
+    focusTaskId = taskId;
+    focusTotalSeconds = getFocusPresetMins() * 60;
+    focusSeconds = focusTotalSeconds;
+    startFocusTimer();
+    render();
+  } finally {
+    enteringFocus = false;
+  }
 }
 async function exitFocus(expandWindow = true) {
   stopFocusTimer();
@@ -120,13 +163,16 @@ async function exitFocus(expandWindow = true) {
   else render();
 }
 
+function quickParseOpts() {
+  return tab === 'repeat' ? { defaultRepeat: 'daily' } : {};
+}
 function renderQuickPreview() {
   const val = $('quickInput').value;
   if (!val.trim() || tab === 'sticky') {
     $('quickPreview').hidden = true;
     return;
   }
-  const parsed = M.parseQuickInput(val);
+  const parsed = M.parseQuickInput(val, Date.now(), quickParseOpts());
   if (!parsed.parsed) {
     $('quickPreview').hidden = true;
     return;
@@ -154,14 +200,20 @@ function render() {
 
   const isGhost = !!current.ghost;
   const isStealth = !!state.settings.hideFromCapture;
+  const isCompact = !!current.collapsed && !current.tucked;
   const canExitGhost = current.ghostShortcutAvailable !== false || current.shortcutAvailable !== false || !!current.trayAvailable;
   document.body.classList.toggle('ghost-mode', isGhost);
-  $('ghostBanner').hidden = !isGhost || !!current.tucked;
+  document.body.classList.toggle('compact-mode', isCompact);
+  $('ghostBanner').hidden = !isGhost || !!current.tucked || !!current.collapsed;
+  $('ghostPill').hidden = !isGhost || !isCompact;
+  $('ghostPill').textContent = current.ghostShortcutAvailable !== false
+    ? 'GHOST · Ctrl+Alt+G'
+    : current.shortcutAvailable !== false ? 'GHOST · Ctrl+Alt+Q' : 'GHOST · Tray';
   $('ghostBannerText').textContent = current.ghostShortcutAvailable !== false
-    ? 'Ghost click-through · Press Ctrl+Alt+G or Esc to interact'
+    ? 'Ghost click-through · Press Ctrl+Alt+G or click tray to exit'
     : current.shortcutAvailable !== false
-      ? 'Ghost click-through · Press Ctrl+Alt+Q, Esc, or click tray to exit'
-      : 'Ghost click-through · Click system tray or press Esc to exit';
+      ? 'Ghost click-through · Press Ctrl+Alt+Q or click tray to exit'
+      : 'Ghost click-through · Click system tray to exit';
   $('stealthPill').hidden = !isStealth;
 
   $('stealthButton').classList.toggle('active', isStealth);
@@ -172,7 +224,7 @@ function render() {
   $('ghostButton').disabled = !isGhost && !canExitGhost;
   $('ghostButton').setAttribute('aria-pressed', String(isGhost));
   $('ghostButton').title = isGhost
-    ? 'Ghost click-through active · Exit via hotkey, Esc, or tray'
+    ? 'Ghost click-through active · Exit via hotkey or tray'
     : canExitGhost
       ? (current.ghostShortcutAvailable !== false ? 'Ghost click-through · Ctrl+Alt+G' : 'Ghost click-through · Exit via tray or Ctrl+Alt+Q')
       : 'Ghost click-through unavailable (no hotkey or system tray)';
@@ -185,7 +237,10 @@ function render() {
   $('titlebar').hidden = !!current.tucked;
   $('edgeView').hidden = !current.tucked;
   document.body.classList.toggle('edge-mode', !!current.tucked);
-  if (!current.collapsed && focusTaskId) { stopFocusTimer(); focusTaskId = null; }
+  if (!enteringFocus && focusTaskId && (current.tucked || !current.collapsed || current.focusActive === false)) {
+    stopFocusTimer();
+    focusTaskId = null;
+  }
   $('fullView').hidden = !!current.collapsed || !!current.tucked;
   $('compactView').hidden = !current.collapsed || !!current.tucked;
   setIcon('collapseButton', current.collapsed ? 'expand' : 'collapse');
@@ -200,7 +255,11 @@ function render() {
 
   // Focused task or nearest DDL in compact view
   const focused = focusTaskId ? active.find(t => t.id === focusTaskId) : null;
-  if (focusTaskId && !focused) { stopFocusTimer(); focusTaskId = null; }
+  if (focusTaskId && !focused) {
+    stopFocusTimer();
+    focusTaskId = null;
+    if (current.focusActive) void command('focus-mode', false);
+  }
   const next = focused || dueTasks[0] || tasks.find(t => t.important) || tasks[0] || sticky[0];
   const d = next ? M.deadline(next, state.settings, now) : { level: 'none', text: '' };
   $('compactTitle').textContent = next ? next.title : 'Clear sky today.';
@@ -210,19 +269,41 @@ function render() {
   $('compactView').dataset.level = d.level;
   $('compactView').classList.toggle('is-focusing', !!focused);
   $('focusControls').hidden = !focused;
+  $('focusProgress').hidden = !focused;
+  const canCompactFocus = !focused && !!next && next.kind === 'task';
+  $('compactFocus').hidden = !canCompactFocus;
+  $('compactFocus').dataset.taskId = canCompactFocus ? next.id : '';
+  if (canCompactFocus) $('compactFocus').title = 'Focus on: ' + next.title;
   $('compactArrow').hidden = !!focused;
   if (focused) {
     $('focusTimer').textContent = formatTimer(focusSeconds);
     setIcon('focusToggle', focusRunning ? 'pause' : 'play');
+    updateFocusProgress();
+    updateFocusTimerMeta();
   }
 
   $('todayDate').textContent = weekdays[today.getDay()] + ', ' + months[today.getMonth()] + ' ' + today.getDate();
   $('activeCount').textContent = tasks.length;
   const overdue = tasks.filter(t => M.deadline(t, state.settings, now).level === 'overdue').length;
-  const near = tasks.filter(t => ['soon', 'urgent'].includes(M.deadline(t, state.settings, now).level)).length;
+  const urgent = tasks.filter(t => M.deadline(t, state.settings, now).level === 'urgent').length;
+  const soon = tasks.filter(t => M.deadline(t, state.settings, now).level === 'soon').length;
+  const near = urgent + soon;
   const todayDone = done.filter(t => localDate(new Date(t.completedAt)) === localDate(today)).length;
   $('edgeCount').textContent = overdue ? overdue : tasks.length;
-  $('edgeView').dataset.level = overdue ? 'overdue' : near ? 'urgent' : 'none';
+  $('edgeView').dataset.level = overdue ? 'overdue' : urgent ? 'urgent' : soon ? 'soon' : 'none';
+  let edgeBadge = 'CALM';
+  if (focused) {
+    edgeBadge = Math.max(1, Math.ceil(focusSeconds / 60)) + 'm';
+  } else if (overdue) {
+    edgeBadge = 'OVER';
+  } else if (dueTasks.length) {
+    const ms = Date.parse(dueTasks[0].dueAt) - now;
+    if (ms <= 0) edgeBadge = 'OVER';
+    else if (ms >= M.DAY) edgeBadge = Math.ceil(ms / M.DAY) + 'd';
+    else if (ms >= M.HOUR) edgeBadge = Math.ceil(ms / M.HOUR) + 'h';
+    else edgeBadge = Math.max(1, Math.ceil(ms / M.MINUTE)) + 'm';
+  }
+  $('edgeCountdown').textContent = edgeBadge;
   const edgeNextHint = next ? ' · Next: ' + next.title.slice(0, 32) + (d.text ? ' (' + d.text + ')' : '') : '';
   $('edgeOpen').title = (overdue ? overdue + ' overdue' : tasks.length + ' open') + edgeNextHint + ' · Click to expand';
 
@@ -233,6 +314,10 @@ function render() {
         : 'Quietly keeping track of what matters';
   $('nearSummary').classList.toggle('attention', !!(overdue || near));
 
+  const qm = state.settings.quietMinutes || 15;
+  $('quietButton').title = 'Hide for ' + qm + ' minutes & pause alerts · Recall from tray anytime';
+  $('quietButton').setAttribute('aria-label', 'Hide for ' + qm + ' minutes');
+
   for (const [id, number] of [['countAll', active.length], ['countDdl', dueTasks.filter(t => !t.repeat).length], ['countRepeat', tasks.filter(t => t.repeat).length], ['countSticky', sticky.length], ['countDone', done.length]]) $(id).textContent = number;
   document.querySelectorAll('[data-tab]').forEach(button => { button.classList.toggle('active', button.dataset.tab === tab); button.setAttribute('aria-pressed', String(button.dataset.tab === tab)); });
   renderList(now);
@@ -240,8 +325,8 @@ function render() {
   $('quickInput').placeholder = tab === 'sticky'
     ? 'Add a pinned reminder, press Enter…'
     : tab === 'repeat'
-      ? 'e.g., "Standup weekdays 09:00"…'
-      : 'Try "Submit draft fri 18:00 !" or "pin: …"';
+      ? 'e.g., "Standup 09:00" or "weekdays 09:00"…'
+      : 'Try "Submit draft fri 18:00 !" or "Task // note"';
   renderQuickPreview();
   $('undoButton').disabled = !current.canUndo;
   $('saveStatus').className = ''; const dot = el('i'); $('saveStatus').replaceChildren(dot, document.createTextNode('Saved locally'));
@@ -263,17 +348,69 @@ function renderShelf(sticky) {
     const content = el('button', 'task-content'); content.type = 'button'; content.setAttribute('aria-label', 'Edit: ' + t.title);
     const title = el('span', 'task-title', t.title); if (t.important) { const star = el('span', 'important-star'); star.append(icon('star')); title.append(star); }
     content.append(title); if (t.note) content.append(el('span', 'task-note', t.note));
-    content.addEventListener('click', () => openEditor(t.id)); row.append(mark, content); fragment.append(row);
+    content.addEventListener('click', () => openEditor(t.id));
+    row.append(mark, content);
+    const shelfUrl = M.extractFirstUrl((t.note || '') + ' ' + (t.title || ''));
+    if (shelfUrl) {
+      const actions = el('div', 'row-actions');
+      const linkBtn = el('button', 'row-menu link-trigger');
+      linkBtn.type = 'button'; linkBtn.title = shelfUrl; linkBtn.setAttribute('aria-label', 'Open link: ' + t.title);
+      linkBtn.append(icon('link'));
+      linkBtn.addEventListener('click', e => { e.stopPropagation(); void command('open-url', shelfUrl); });
+      actions.append(linkBtn);
+      row.append(actions);
+    }
+    fragment.append(row);
   }
   $('stickyItems').replaceChildren(fragment);
   $('viewSticky').hidden = sticky.length <= 2;
   $('viewSticky').replaceChildren(document.createTextNode(Math.max(0, sticky.length - 2) + ' more · View all '), icon('arrow'));
 }
 
+function visibleRows() {
+  return Array.from($('fullView').querySelectorAll('.task-row')).filter(r => r.offsetParent !== null);
+}
+function applyKbSelection(scroll = false) {
+  const rows = visibleRows();
+  let matched = null;
+  for (const r of rows) {
+    const isSel = !!kbSelectedId && r.dataset.id === kbSelectedId;
+    r.classList.toggle('kb-selected', isSel);
+    if (isSel) matched = r;
+  }
+  if (!matched) kbSelectedId = null;
+  else if (scroll) matched.scrollIntoView({ block: 'nearest' });
+  return matched;
+}
+function renderSearchHints(now = Date.now()) {
+  const box = $('searchOtherTabs');
+  const q = (query || '').trim();
+  if (!q || !state) { box.hidden = true; box.replaceChildren(); return; }
+  const others = [];
+  for (const key of TAB_ORDER) {
+    if (key === tab) continue;
+    const n = M.groups(state.tasks, key, q, state.settings, now).reduce((sum, g) => sum + g.tasks.length, 0);
+    if (n > 0) others.push({ key, label: TAB_LABELS[key], count: n });
+  }
+  if (!others.length) { box.hidden = true; box.replaceChildren(); return; }
+  box.hidden = false;
+  const frag = document.createDocumentFragment();
+  frag.append(el('span', 'search-hint-label', 'Also found:'));
+  for (const item of others) {
+    const btn = el('button', 'search-hint-pill', item.label + ' (' + item.count + ')');
+    btn.type = 'button';
+    btn.dataset.targetTab = item.key;
+    btn.addEventListener('click', () => { tab = item.key; kbSelectedId = null; $('listArea').scrollTop = 0; render(); });
+    frag.append(btn);
+  }
+  box.replaceChildren(frag);
+}
+
 function renderList(now = Date.now()) {
   const scroll = $('listArea').scrollTop, fragment = document.createDocumentFragment();
   const groups = M.groups(state.tasks, tab, query, state.settings, now);
   const count = groups.reduce((sum, g) => sum + g.tasks.length, 0);
+  renderSearchHints(now);
   renderShelf(groups.find(g => g.key === 'sticky')?.tasks || []);
   for (const group of groups) {
     if (!group.tasks.length) continue;
@@ -322,7 +459,7 @@ function renderList(now = Date.now()) {
         content.append(el('span', 'task-meta', (t.kind === 'sticky' ? 'Archived ' : 'Done ') + fullDate(t.completedAt)));
         if (t.occurrenceOf) content.append(el('span', 'repeat-meta', M.repeats[t.occurrenceRepeat] + ' · Completed occurrence'));
       }
-      content.addEventListener('click', () => openEditor(t.id));
+      content.addEventListener('click', () => { kbSelectedId = null; openEditor(t.id); });
 
       const actions = el('div', 'row-actions');
       if (!t.completedAt && t.kind === 'task') {
@@ -333,13 +470,29 @@ function renderList(now = Date.now()) {
           const stmr = el('button', 'micro-chip', 'Tmr');
           stmr.type = 'button'; stmr.title = 'Snooze to tomorrow'; stmr.setAttribute('aria-label', 'Snooze tomorrow: ' + t.title);
           stmr.addEventListener('click', e => { e.stopPropagation(); act({ type: 'snooze', id: t.id, preset: 'tomorrow' }, 'Moved to tomorrow.'); });
-          actions.append(s1h, stmr);
+          const s1w = el('button', 'micro-chip', '+1w');
+          s1w.type = 'button'; s1w.title = 'Snooze +1 week'; s1w.setAttribute('aria-label', 'Snooze +1w: ' + t.title);
+          s1w.addEventListener('click', e => { e.stopPropagation(); act({ type: 'snooze', id: t.id, preset: '+1w' }, 'Snoozed +1 week.'); });
+          actions.append(s1h, stmr, s1w);
+        } else if (t.repeat) {
+          const skipBtn = el('button', 'micro-chip', 'Skip');
+          skipBtn.type = 'button'; skipBtn.title = 'Skip this occurrence'; skipBtn.setAttribute('aria-label', 'Skip occurrence: ' + t.title);
+          skipBtn.addEventListener('click', e => { e.stopPropagation(); act({ type: 'skip', id: t.id }, 'Skipped to next occurrence.'); });
+          actions.append(skipBtn);
         }
         const focusBtn = el('button', 'row-menu focus-trigger');
         focusBtn.type = 'button'; focusBtn.title = 'Focus on this task'; focusBtn.setAttribute('aria-label', 'Focus: ' + t.title);
         focusBtn.append(icon('focus'));
         focusBtn.addEventListener('click', e => { e.stopPropagation(); void enterFocus(t.id); });
         actions.append(focusBtn);
+      }
+      const rowUrl = !t.completedAt ? M.extractFirstUrl((t.note || '') + ' ' + (t.title || '')) : null;
+      if (rowUrl) {
+        const linkBtn = el('button', 'row-menu link-trigger');
+        linkBtn.type = 'button'; linkBtn.title = rowUrl; linkBtn.setAttribute('aria-label', 'Open link: ' + t.title);
+        linkBtn.append(icon('link'));
+        linkBtn.addEventListener('click', e => { e.stopPropagation(); void command('open-url', rowUrl); });
+        actions.append(linkBtn);
       }
       const menu = el('button', 'row-menu'); menu.type = 'button'; menu.title = 'Edit / Delete'; menu.setAttribute('aria-label', 'More actions: ' + t.title); menu.append(icon('more')); menu.addEventListener('click', () => openEditor(t.id));
       actions.append(menu);
@@ -348,6 +501,7 @@ function renderList(now = Date.now()) {
     fragment.append(section);
   }
   $('taskList').replaceChildren(fragment); $('listArea').scrollTop = scroll;
+  applyKbSelection(false);
   $('emptyState').hidden = count > 0;
   if (!count) {
     let title = 'Room for what matters.', description = 'Try typing "Submit draft fri 18:00 !"\nor pin a note to the top shelf.';
@@ -394,17 +548,31 @@ function previewDate() {
     $('duePreview').className = 'due-preview'; $('duePreview').dataset.level = repeat ? 'future' : d.level;
   } catch (_) { $('duePreview').textContent = ''; }
 }
-function openEditor(id = null, initial = '', initialNote = '') {
+function updateNoteLinkPill() {
+  const url = M.extractFirstUrl($('taskNote').value);
+  $('noteLinkPill').hidden = !url;
+  $('noteLinkPill').dataset.url = url || '';
+  if (url) {
+    $('noteLinkText').textContent = M.titleFromUrl(url) || url;
+    $('noteLinkPill').title = 'Open ' + url;
+    $('noteLinkPill').setAttribute('aria-label', 'Open link: ' + url);
+  }
+}
+async function openEditor(id = null, initial = '', initialNote = '', skipParse = false) {
   if (!state) return;
   command('modal-open', true);
-  if (current.collapsed) command('collapse', false);
+  if (current.tucked) await command('tuck', false);
+  if (current.collapsed) await command('collapse', false);
   if ($('settingsDialog').open) $('settingsDialog').close();
-  const t = id ? state.tasks.find(t => t.id === id) : null; if (id && !t) return;
+  const t = id ? state.tasks.find(t => t.id === id) : null;
+  if (id && !t) { command('modal-open', $('settingsDialog').open); return; }
+  if ($('editorDialog').open) return;
   editId = id; lastFocus = document.activeElement;
-  const parsed = !t && initial && !quickRawMode && tab !== 'sticky' ? M.parseQuickInput(initial) : null;
+  const parsed = !t && initial && !skipParse && !quickRawMode && tab !== 'sticky' ? M.parseQuickInput(initial, Date.now(), quickParseOpts()) : null;
   $('editorHeading').textContent = id ? 'Edit Task' : 'New Task';
   $('taskTitle').value = t ? t.title : (parsed?.parsed ? parsed.title : initial);
-  $('taskNote').value = t ? t.note : initialNote;
+  $('taskNote').value = t ? t.note : (initialNote || (parsed?.note || ''));
+  updateNoteLinkPill();
   $('taskImportant').checked = t ? t.important : !!(parsed?.important);
   $('repeatSelect').value = t ? t.repeat || '' : (parsed?.repeat || (tab === 'repeat' ? 'daily' : ''));
   $('repeatSelect').disabled = !!t?.occurrenceOf;
@@ -427,13 +595,13 @@ function renderSettings() {
   document.querySelectorAll('[data-theme]').forEach(n => { if (n.tagName === 'BUTTON') n.classList.toggle('selected', n.dataset.theme === s.theme); });
   document.querySelectorAll('[data-accent]').forEach(n => { if (n.tagName === 'BUTTON') n.classList.toggle('selected', n.dataset.accent === s.accent); });
   for (const id of ['reminders', 'alwaysOnTop', 'launchOnStartup', 'autoTuck', 'hideFromCapture']) $(id).checked = s[id];
-  $('warnDays').value = s.warnDays; $('urgentHours').value = s.urgentHours;
+  $('warnDays').value = s.warnDays; $('urgentHours').value = s.urgentHours; $('quietMinutes').value = s.quietMinutes || 15;
   if (document.activeElement !== $('opacityRange')) $('opacityRange').value = Math.round(s.opacity * 100);
   $('opacityValue').textContent = Math.round(s.opacity * 100) + '%';
   $('clearButton').disabled = !state.tasks.some(t => t.completedAt);
   const qHint = current.shortcutAvailable ? 'Ctrl+Alt+Q toggle' : 'Ctrl+Alt+Q unavailable (use tray)';
   const gHint = current.ghostShortcutAvailable !== false ? 'Ctrl+Alt+G ghost' : 'Ghost via tray';
-  $('shortcutHint').textContent = qHint + ' · ' + gHint + ' · Ctrl+N new';
+  $('shortcutHint').textContent = qHint + ' · ' + gHint + ' · Ctrl+1–5 tabs · Ctrl+N new';
 }
 function showSearch() { $('searchRow').hidden = false; $('searchInput').focus(); }
 function closeSearch() { query = ''; $('searchInput').value = ''; $('searchRow').hidden = true; renderList(); }
@@ -444,13 +612,46 @@ $('ghostButton').addEventListener('click', () => command('ghost', !current.ghost
 $('pinButton').addEventListener('click', () => act({ type: 'settings', settings: { alwaysOnTop: !state.settings.alwaysOnTop } }));
 $('dockButton').addEventListener('click', () => command('tuck', true));
 $('edgeOpen').addEventListener('click', () => command('tuck', false));
-$('quietButton').addEventListener('click', () => command('away', 15));
+$('quietButton').addEventListener('click', () => command('away', state?.settings?.quietMinutes || 15));
 $('stickyToggle').addEventListener('click', () => act({ type: 'settings', settings: { stickyCollapsed: !state.settings.stickyCollapsed } }));
-$('viewSticky').addEventListener('click', () => { tab = 'sticky'; render(); });
-$('addSticky').addEventListener('click', () => { openEditor(); setKind('sticky'); dateFields(); });
+$('viewSticky').addEventListener('click', () => { tab = 'sticky'; kbSelectedId = null; render(); });
+$('addSticky').addEventListener('click', async () => { await openEditor(); setKind('sticky'); dateFields(); });
 $('collapseButton').addEventListener('click', () => { if (focusTaskId) void exitFocus(true); else command('collapse', !current.collapsed); });
 $('compactView').addEventListener('click', () => { if (!focusTaskId) command('collapse', false); });
 $('compactView').addEventListener('keydown', e => { if (!focusTaskId && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); command('collapse', false); } });
+$('compactFocus').addEventListener('click', e => { e.stopPropagation(); const id = $('compactFocus').dataset.taskId; if (id) void enterFocus(id); });
+$('focusTimer').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!focusTaskId || focusRunning) return;
+  const cur = getFocusPresetMins();
+  const nextMins = FOCUS_PRESETS[(FOCUS_PRESETS.indexOf(cur) + 1) % FOCUS_PRESETS.length];
+  setFocusPresetMins(nextMins);
+  focusTotalSeconds = nextMins * 60;
+  focusSeconds = focusTotalSeconds;
+  $('focusTimer').textContent = formatTimer(focusSeconds);
+  updateFocusProgress();
+  updateFocusTimerMeta();
+});
+$('focusPlusFive').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!focusTaskId) return;
+  if (focusRunning && focusEndAt) {
+    focusEndAt += 5 * 60000;
+    focusSeconds = Math.max(0, Math.ceil((focusEndAt - Date.now()) / 1000));
+    focusTotalSeconds += 5 * 60;
+  } else if (focusSeconds <= 0) {
+    focusSeconds = 5 * 60;
+    focusTotalSeconds += 5 * 60;
+    startFocusTimer();
+    setIcon('focusToggle', 'pause');
+  } else {
+    focusSeconds += 5 * 60;
+    focusTotalSeconds += 5 * 60;
+  }
+  $('focusTimer').textContent = formatTimer(focusSeconds);
+  updateFocusProgress();
+  updateFocusTimerMeta();
+});
 $('focusToggle').addEventListener('click', e => { e.stopPropagation(); if (focusRunning) stopFocusTimer(); else startFocusTimer(); setIcon('focusToggle', focusRunning ? 'pause' : 'play'); });
 $('focusDone').addEventListener('click', async e => {
   e.stopPropagation();
@@ -461,7 +662,7 @@ $('focusDone').addEventListener('click', async e => {
 });
 $('focusExit').addEventListener('click', e => { e.stopPropagation(); void exitFocus(true); });
 $('hideButton').addEventListener('click', () => command('hide'));
-document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => { tab = button.dataset.tab; $('listArea').scrollTop = 0; render(); }));
+document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => { tab = button.dataset.tab; kbSelectedId = null; $('listArea').scrollTop = 0; render(); }));
 $('searchButton').addEventListener('click', showSearch); $('searchClose').addEventListener('click', closeSearch);
 $('searchInput').addEventListener('input', event => { query = event.target.value; renderList(); });
 $('detailAdd').addEventListener('click', () => openEditor(null, $('quickInput').value.trim()));
@@ -476,10 +677,11 @@ $('quickInput').addEventListener('keydown', event => { if (event.key === 'Enter'
 $('quickForm').addEventListener('submit', async event => {
   event.preventDefault(); if (composing || busy) return;
   const raw = $('quickInput').value.trim(); if (!raw) { openEditor(); return; }
-  const parsed = !quickRawMode && tab !== 'sticky' ? M.parseQuickInput(raw) : { title: raw, kind: tab === 'sticky' ? 'sticky' : 'task', dueAt: null, repeat: null, important: false, parsed: false };
+  const parsed = !quickRawMode && tab !== 'sticky' ? M.parseQuickInput(raw, Date.now(), quickParseOpts()) : { title: raw, note: '', kind: tab === 'sticky' ? 'sticky' : 'task', dueAt: null, repeat: null, important: false, parsed: false };
   if (!parsed.parsed && (tab === 'ddl' || tab === 'repeat')) { openEditor(null, raw); return; }
   const nextTask = {
     title: parsed.title,
+    note: parsed.note || '',
     kind: parsed.parsed ? parsed.kind : (tab === 'sticky' ? 'sticky' : 'task'),
     dueAt: parsed.dueAt || null,
     repeat: parsed.repeat || null,
@@ -528,10 +730,27 @@ document.addEventListener('drop', async e => {
   if (!payloadText) return;
   if (current.tucked) await command('tuck', false);
   if (current.collapsed) await command('collapse', false);
-  const firstLine = payloadText.split(/\r?\n/)[0].trim().slice(0, 140);
-  const rawNote = uri && uri !== firstLine ? uri : (payloadText.length > firstLine.length ? payloadText : '');
+  const validUri = uri ? M.extractFirstUrl(uri) : (!text.includes('\n') && /^https?:\/\/\S+$/i.test(text) ? M.extractFirstUrl(text) : null);
+  let firstLine, rawNote;
+  if (validUri && (!text || text === uri || text === validUri)) {
+    firstLine = M.titleFromUrl(validUri) || validUri.slice(0, 140);
+    rawNote = validUri;
+  } else {
+    firstLine = payloadText.split(/\r?\n/)[0].trim().slice(0, 140);
+    rawNote = uri && uri !== firstLine ? uri : (payloadText.length > firstLine.length ? payloadText : '');
+  }
   const extraNote = rawNote.slice(0, 5000);
-  openEditor(null, firstLine, extraNote);
+  openEditor(null, firstLine, extraNote, !!validUri);
+});
+
+$('taskNote').addEventListener('input', updateNoteLinkPill);
+$('noteLinkPill').addEventListener('click', () => { const url = $('noteLinkPill').dataset.url; if (url) void command('open-url', url); });
+$('editorDialog').addEventListener('keydown', event => {
+  if (event.isComposing) return;
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    event.preventDefault();
+    $('editorForm').requestSubmit();
+  }
 });
 
 document.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => { setKind(button.dataset.kind); dateFields(); }));
@@ -572,7 +791,7 @@ $('closeSettings').addEventListener('click', () => { $('settingsDialog').close()
 document.querySelectorAll('button[data-theme]').forEach(button => button.addEventListener('click', () => act({ type: 'settings', settings: { theme: button.dataset.theme } })));
 document.querySelectorAll('button[data-accent]').forEach(button => button.addEventListener('click', () => act({ type: 'settings', settings: { accent: button.dataset.accent } })));
 for (const id of ['alwaysOnTop', 'reminders', 'launchOnStartup', 'autoTuck', 'hideFromCapture']) $(id).addEventListener('change', () => act({ type: 'settings', settings: { [id]: $(id).checked } }));
-for (const id of ['warnDays', 'urgentHours']) $(id).addEventListener('change', () => act({ type: 'settings', settings: { [id]: Number($(id).value) } }));
+for (const id of ['warnDays', 'urgentHours', 'quietMinutes']) $(id).addEventListener('change', () => act({ type: 'settings', settings: { [id]: Number($(id).value) } }));
 $('opacityRange').addEventListener('input', () => $('opacityValue').textContent = $('opacityRange').value + '%');
 $('opacityRange').addEventListener('change', () => act({ type: 'settings', settings: { opacity: Number($('opacityRange').value) / 100 } }));
 $('exportButton').addEventListener('click', async () => { const r = await command('export'); if (r && r.ok) { $('settingsDialog').close(); toast('JSON backup exported.'); } });
@@ -583,14 +802,69 @@ $('clearButton').addEventListener('click', async () => { const r = await command
 $('quitButton').addEventListener('click', () => command('quit'));
 document.addEventListener('keydown', event => {
   if (event.isComposing) return;
-  const editable = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'n') { event.preventDefault(); if (!$('editorDialog').open) openEditor(); }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && !$('editorDialog').open && !$('settingsDialog').open) { event.preventDefault(); if (current.collapsed) command('collapse', false); showSearch(); }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editable && !$('editorDialog').open && !$('settingsDialog').open) { event.preventDefault(); undo(); }
-  if (event.key === 'Escape' && !$('editorDialog').open && !$('settingsDialog').open) {
+  const tag = document.activeElement?.tagName;
+  const editable = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
+  const dialogOpen = $('editorDialog').open || $('settingsDialog').open;
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'n') { event.preventDefault(); if (!$('editorDialog').open) void openEditor(); return; }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && !dialogOpen) {
+    event.preventDefault();
+    (async () => {
+      if (current.tucked) await command('tuck', false);
+      if (current.collapsed) await command('collapse', false);
+      showSearch();
+    })();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editable && !dialogOpen) { event.preventDefault(); undo(); return; }
+  if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && ['1', '2', '3', '4', '5'].includes(event.key) && !dialogOpen && !current.tucked) {
+    event.preventDefault();
+    if (current.collapsed && !focusTaskId) void command('collapse', false);
+    tab = TAB_ORDER[Number(event.key) - 1];
+    kbSelectedId = null;
+    $('listArea').scrollTop = 0;
+    render();
+    return;
+  }
+  if (event.key === 'Escape' && !dialogOpen) {
     if (current.ghost) { event.preventDefault(); void command('ghost', false); return; }
-    if (!$('searchRow').hidden) closeSearch();
-    $('toast').hidden = true;
+    if (!$('searchRow').hidden) { closeSearch(); return; }
+    if (!$('toast').hidden) { $('toast').hidden = true; return; }
+    if (kbSelectedId) { kbSelectedId = null; applyKbSelection(false); return; }
+    if (!current.tucked && !focusTaskId && state?.settings?.autoTuck && !$('quickInput').value.trim()) {
+      event.preventDefault();
+      void command('dismiss');
+    }
+    return;
+  }
+  if (!editable && !dialogOpen && !current.collapsed && !current.tucked && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      const rows = visibleRows();
+      if (!rows.length) return;
+      event.preventDefault();
+      const idx = rows.findIndex(r => r.dataset.id === kbSelectedId);
+      const nextIdx = event.key === 'ArrowDown'
+        ? (idx < 0 ? 0 : (idx + 1) % rows.length)
+        : (idx <= 0 ? rows.length - 1 : idx - 1);
+      kbSelectedId = rows[nextIdx].dataset.id;
+      $('listArea').focus({ preventScroll: true });
+      applyKbSelection(true);
+      return;
+    }
+    if (kbSelectedId && tag !== 'BUTTON') {
+      const selectedTask = state?.tasks.find(t => t.id === kbSelectedId);
+      if (!selectedTask) { kbSelectedId = null; applyKbSelection(false); return; }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        openEditor(selectedTask.id);
+      } else if (event.key === ' ') {
+        event.preventDefault();
+        if (selectedTask.kind === 'sticky' && !selectedTask.completedAt) openEditor(selectedTask.id);
+        else if (!selectedTask.occurrenceOf) void act({ type: 'toggle', id: selectedTask.id }, selectedTask.completedAt ? 'Restored to list.' : selectedTask.repeat ? 'Done — next occurrence scheduled.' : 'Marked complete.');
+      } else if (event.key.toLowerCase() === 'f' && !selectedTask.completedAt && selectedTask.kind === 'task') {
+        event.preventDefault();
+        void enterFocus(selectedTask.id);
+      }
+    }
   }
 });
 if (!window.edgewise) {

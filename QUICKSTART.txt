@@ -1,4 +1,4 @@
-Edgewise 1.3.0 — Quick Start (Windows x64 Portable)
+Edgewise 1.4.0 — Quick Start (Windows x64 Portable)
 ===================================================
 
 Edgewise (formerly Qingdan) is an ambient Windows deadline bar that stays
@@ -20,36 +20,49 @@ on first launch. Your original Qingdan folder is left completely untouched.
 
 KEY FEATURES
 ------------
-- Natural-Language Quick Capture:
-    "Submit draft fri 18:00 !"       -> Friday 18:00, marked important
-    "Review PR +2h"                  -> 2 hours from now
-    "Standup weekdays 09:00"         -> Mon-Fri recurring routine
-    "pin: Always verify checksums"   -> Pinned note on the top shelf
+- Natural-Language Quick Capture (100% offline):
+    "Submit draft fri 18:00 !"             -> Friday 18:00, marked important
+    "Review PR in 30m" / "in 3 days"       -> Relative deadline
+    "Send slides by eod // check table 2"  -> 18:00 + inline note
+    "Conference paper Dec 5th"             -> Ordinal month date
+    "Ship report next week"                -> Next Monday 09:00
+    "Standup weekdays 09:00"               -> Mon-Fri recurring routine
+    "pin: Always verify checksums"         -> Pinned note on the top shelf
     Click "Raw" in the live preview bar to keep your exact literal title.
+- Drag & Drop URL -> 1-Click External Link Loop:
+    Drop any browser URL onto the window or 46px edge tab to generate a clean
+    title while preserving the full URL in notes. Open http(s) links in 1 click
+    from any row or from the link pill inside the task editor.
 - Screen-Share Stealth (Eye-Off button):
     Hides Edgewise from Zoom, Teams, Discord, OBS, and Windows screenshots
     while staying visible to you.
 - Ghost Click-Through Mode (Ctrl+Alt+G):
-    Turns the bar into a semi-transparent click-through overlay over fullscreen
-    IDEs or PDFs. Press Ctrl+Alt+G, Esc (when focused), Ctrl+Alt+Q, or click
-    the system tray icon to exit safely.
-- Single-Task Focus Strip (Crosshair button on any task):
-    Collapses to a 132px strip with a drift-free 25:00 timer, pausing auto-tuck
-    until you complete or exit.
-- 1-Click Snooze (+1h / Tmr) with Undo (Ctrl+Z) & 2px DDL Runway Bar.
-- Drag & Drop any text or URL onto the window or 46px edge tab to capture.
+    Semi-transparent click-through overlay over fullscreen IDEs or PDFs.
+    Press Ctrl+Alt+G, Ctrl+Alt+Q, or click the system tray icon to exit safely.
+- Adjustable Focus Strip (Crosshair button on any task or Compact strip):
+    Pause to cycle 15 / 25 / 45 / 60m presets, click +5m to extend anytime,
+    track elapsed progress on a subtle 2px bar, and complete in 1 click.
+- Hover-Overlay Actions, +1w Snooze & Routine Skip:
+    Hover any row for +1h / Tmr / +1w snooze, Skip on routines (advances
+    without cluttering Completed), Focus, and link-open actions — all undoable.
+- Quiet Mode (15 / 30 / 60m):
+    Hides the window and suppresses desktop alerts until the break ends or you
+    resume from the tray; configure the default break duration in Settings.
 - Export Tasks as Markdown (.md) or JSON Backup from Settings.
 
-GLOBAL SHORTCUTS
-----------------
-- Ctrl+Alt+Q : Show / Hide Edgewise and focus Quick Add
-- Ctrl+Alt+G : Toggle Ghost Click-Through overlay
-- Ctrl+N     : Open Detailed Task Editor
-- Ctrl+F     : Search titles and notes
-- Ctrl+Z     : Undo last task action
+KEYBOARD SHORTCUTS
+------------------
+- Ctrl+Alt+Q   : Show / dismiss Edgewise (tucks to edge tab if Auto-tuck is on)
+- Ctrl+Alt+G   : Toggle Ghost Click-Through overlay
+- Ctrl+1 .. 5  : Switch tabs (All, DDL, Repeat, Pinned, Done)
+- Up / Down    : Select visible task rows (Enter edit, Space complete, f focus)
+- Ctrl+N       : Open Detailed Task Editor (Ctrl+Enter saves from notes too)
+- Ctrl+F       : Search titles and notes (with cross-tab match hints)
+- Ctrl+Z       : Undo last task action
+- Esc          : Close search / toast / selection, or dismiss to edge tab
 
 DATA & PRIVACY
 --------------
 Your tasks are stored locally in %APPDATA%\Edgewise with atomic writes and 20
 daily backup snapshots. Source code & checksums:
-https://github.com/KennyMcSimpson/edgewise
+https://github.com/KennyMcSimpson/Edgewise

@@ -67,3 +67,45 @@
 .drop-hint svg{width:24px;height:24px}
 #exportMdButton{display:flex;margin-top:4px}
 @media(max-width:370px){.window-controls .icon-button{width:27px;height:27px}.stealth-pill{display:none}.micro-chip{padding:2px 5px}}
+
+/* 1.4: compact+ghost pill, adjustable focus strip, hover-overlay row actions, edge countdown, cross-tab hints, note link pill. */
+.brand{min-width:0;overflow:hidden;gap:6px}
+.brand>img,.brand>.brand-name{flex:none}
+.brand>span.stealth-pill,.brand>span.ghost-pill{font-size:8px;font-weight:600;letter-spacing:.5px;padding:2px 5px;border-radius:4px;background:var(--accent-tint);color:var(--accent-strong);white-space:nowrap}
+.brand>span.ghost-pill{overflow:hidden;text-overflow:ellipsis;min-width:0;flex-shrink:1}
+.compact-mode.ghost-mode .brand>span.stealth-pill,.compact-mode.ghost-mode .brand>.brand-name{display:none}
+.compact-mode .toast{bottom:8px;left:14px;right:14px;padding:8px 10px 8px 12px}
+.compact-view{position:relative}
+.compact-focus{flex:none}
+.focus-timer{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--accent-strong);padding:3px 5px;border-radius:5px;transition:background .15s}
+.focus-timer:hover{background:var(--accent-tint)}
+.focus-controls .icon-button{width:26px;height:26px}
+.focus-plus{opacity:1;padding:3px 5px;font-size:9px;font-weight:600}
+.focus-progress{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--line);border-radius:2px;overflow:hidden}
+.focus-progress>i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s linear}
+.compact-view[data-level=soon] .focus-progress>i{background:var(--soon)}
+.compact-view[data-level=urgent] .focus-progress>i{background:var(--urgent)}
+.compact-view[data-level=overdue] .focus-progress>i{background:var(--overdue)}
+.row-actions{position:absolute;right:2px;top:6px;display:flex;align-items:center;gap:3px;padding:2px 0 2px 22px;margin-right:0;background:linear-gradient(90deg,transparent,var(--bg) 24%);opacity:0;pointer-events:none;transition:opacity .15s;z-index:2}
+.shelf-row .row-actions{top:6px;background:linear-gradient(90deg,transparent,var(--surface) 24%)}
+.task-row:hover .row-actions,.task-row:focus-within .row-actions{opacity:1}
+.task-row:hover .row-actions>*,.task-row:focus-within .row-actions>*{pointer-events:auto}
+.row-actions .row-menu,.row-actions .micro-chip{opacity:1;margin-right:0}
+.task-row.kb-selected{box-shadow:inset 2px 0 0 var(--accent);padding-left:8px;margin-left:-8px;border-radius:4px}
+.edge-view button{gap:8px;padding:6px 0 11px;justify-content:space-between}
+.edge-countdown{font-size:9px;font-weight:700;letter-spacing:.35px;font-variant-numeric:tabular-nums;line-height:1.2;max-width:42px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.edge-view[data-level=soon]{border-color:var(--soon)}
+.edge-view[data-level=soon] #edgeCount{background:var(--soon-bg);color:var(--soon)}
+.edge-view[data-level=soon] .edge-countdown{color:var(--soon)}
+.edge-view[data-level=urgent] .edge-countdown{color:var(--urgent)}
+.edge-view[data-level=overdue] .edge-countdown{color:var(--overdue)}
+.search-other-tabs{margin:6px 24px 0;display:flex;align-items:center;flex-wrap:wrap;gap:5px;font-size:10px;color:var(--muted);flex:none}
+.search-hint-label{color:var(--soft);margin-right:2px}
+.search-hint-pill{font-size:10px;padding:2px 7px;border-radius:5px;background:var(--accent-tint);color:var(--accent-strong);font-weight:500;transition:background .15s,color .15s}
+.search-hint-pill:hover{background:var(--accent);color:var(--bg)}
+.note-link-pill{display:inline-flex;align-items:center;gap:5px;max-width:100%;margin:-10px 0 14px;padding:4px 8px;border-radius:6px;background:var(--accent-tint);color:var(--accent-strong);font-size:10px;font-weight:500;transition:background .15s}
+.note-link-pill:hover{background:var(--accent);color:var(--bg)}
+.note-link-pill svg{width:12px;height:12px}
+#noteLinkText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.quick-chip.chip-note{background:var(--input);color:var(--text)}
+@media(max-width:370px){.focus-controls .icon-button{width:24px;height:24px}.focus-timer{font-size:11px;padding:2px 3px}.brand>span.ghost-pill{max-width:none}}

@@ -9,9 +9,9 @@
 </head>
 <body>
   <div id="app">
-    <div id="edgeView" class="edge-view" hidden><div class="edge-grip" title="Drag edge tab"></div><button id="edgeOpen" aria-label="Expand Edgewise"><img src="../assets/mark.svg" alt=""><span class="edge-name">EDGEWISE</span><span id="edgeCount">0</span><span data-icon="arrow"></span></button></div>
+    <div id="edgeView" class="edge-view" hidden><div class="edge-grip" title="Drag edge tab"></div><button id="edgeOpen" aria-label="Expand Edgewise"><img src="../assets/mark.svg" alt=""><span id="edgeCountdown" class="edge-countdown">CALM</span><span id="edgeCount">0</span><span data-icon="arrow"></span></button></div>
     <header id="titlebar" class="titlebar">
-      <div class="brand"><img src="../assets/mark.svg" alt=""><span>Edgewise</span><span id="stealthPill" class="stealth-pill" hidden>PRIVATE</span></div>
+      <div class="brand"><img src="../assets/mark.svg" alt=""><span class="brand-name">Edgewise</span><span id="stealthPill" class="stealth-pill" hidden>PRIVATE</span><span id="ghostPill" class="ghost-pill" hidden>GHOST · Ctrl+Alt+G</span></div>
       <div class="window-controls">
         <button id="stealthButton" class="icon-button" aria-label="Hide from screen share" title="Hide from screen share (Zoom / Teams / OBS)" data-icon="eye-off"></button>
         <button id="ghostButton" class="icon-button" aria-label="Ghost click-through mode" title="Ghost click-through · Ctrl+Alt+G" data-icon="ghost"></button>
@@ -21,17 +21,20 @@
         <button id="hideButton" class="icon-button" aria-label="Hide to tray" title="Hide to tray · Ctrl+Alt+Q to recall" data-icon="minus"></button>
       </div>
     </header>
-    <div id="ghostBanner" class="ghost-banner" hidden><span data-icon="ghost"></span><span id="ghostBannerText">Ghost click-through · Press Ctrl+Alt+G or Esc to interact</span></div>
+    <div id="ghostBanner" class="ghost-banner" hidden><span data-icon="ghost"></span><span id="ghostBannerText">Ghost click-through · Press Ctrl+Alt+G or click tray to exit</span></div>
     <div id="compactView" class="compact-view" role="button" tabindex="0" aria-label="Expand task list" hidden>
       <span class="compact-dot"></span>
       <span class="compact-content"><strong id="compactTitle"></strong><span id="compactMeta"></span></span>
       <div id="focusControls" class="focus-controls" hidden>
-        <span id="focusTimer" class="focus-timer">25:00</span>
+        <button id="focusTimer" type="button" class="focus-timer" title="Pause timer to cycle 15 / 25 / 45 / 60m">25:00</button>
+        <button id="focusPlusFive" type="button" class="micro-chip focus-plus" aria-label="Add 5 minutes to focus timer" title="Extend focus +5 minutes">+5m</button>
         <button id="focusToggle" type="button" class="icon-button" aria-label="Pause or resume focus timer" title="Pause / Resume" data-icon="pause"></button>
         <button id="focusDone" type="button" class="icon-button" aria-label="Complete focused task" title="Mark complete" data-icon="check"></button>
         <button id="focusExit" type="button" class="icon-button" aria-label="Exit focus strip" title="Exit focus" data-icon="x"></button>
       </div>
+      <button id="compactFocus" type="button" class="icon-button compact-focus" aria-label="Start focus session" title="Focus on this task" data-icon="focus" hidden></button>
       <span id="compactArrow" class="compact-arrow" data-icon="expand"></span>
+      <span id="focusProgress" class="focus-progress" hidden><i id="focusProgressFill"></i></span>
     </div>
     <div id="fullView">
       <section class="intro">
@@ -47,6 +50,7 @@
         <button class="tab" data-tab="done">Done <span id="countDone">0</span></button>
       </nav>
       <div id="searchRow" class="search-row" hidden><span data-icon="search"></span><input id="searchInput" type="search" placeholder="Search titles and notes…" autocomplete="off" aria-label="Search tasks"><button id="searchClose" class="icon-button" aria-label="Close search" data-icon="x"></button></div>
+      <div id="searchOtherTabs" class="search-other-tabs" hidden></div>
       <div id="recoveryNotice" class="notice" hidden></div>
       <section id="stickyShelf" class="sticky-shelf" aria-label="Pinned reminders" hidden><div class="shelf-heading"><button id="stickyToggle" aria-expanded="true"><span data-icon="pin"></span><strong>Pinned</strong><span id="shelfCount"></span><span id="shelfChevron" data-icon="collapse"></span></button><button id="addSticky" class="icon-button" title="Add pinned note" aria-label="Add pinned note" data-icon="plus"></button></div><div id="shelfBody"><div id="stickyItems"></div><button id="viewSticky" class="shelf-more" hidden>View all pinned <span data-icon="arrow"></span></button></div></section>
       <main id="listArea" tabindex="-1" aria-label="Task list">
@@ -60,7 +64,7 @@
       </main>
       <div id="deadlineLegend" class="legend" hidden><span><i class="soon-dot"></i>Soon</span><span><i class="urgent-dot"></i>Urgent</span><span><i class="overdue-dot"></i>Overdue</span><span class="legend-auto">Color shifts automatically</span></div>
       <div id="quickPreview" class="quick-preview" hidden><div id="quickChips" class="quick-chips"></div><button id="quickRawToggle" type="button" class="quick-raw-toggle" title="Save literal text without parsing">Raw</button></div>
-      <form id="quickForm" class="quick-add"><span data-icon="plus"></span><input id="quickInput" maxlength="160" autocomplete="off" placeholder='Try "Submit draft fri 18:00 !" or "pin: ..."' aria-label="Quick add task"><button id="detailAdd" type="button" class="icon-button" title="Detailed editor · Ctrl+N" aria-label="Detailed editor" data-icon="sliders"></button></form>
+      <form id="quickForm" class="quick-add"><span data-icon="plus"></span><input id="quickInput" maxlength="500" autocomplete="off" placeholder='Try "Submit draft fri 18:00 !" or "pin: ..."' aria-label="Quick add task"><button id="detailAdd" type="button" class="icon-button" title="Detailed editor · Ctrl+N" aria-label="Detailed editor" data-icon="sliders"></button></form>
       <footer class="footer"><span id="saveStatus"><i></i>Saved locally</span><div><button id="quietButton" class="icon-button" title="Hide for 15 minutes · Recall from tray anytime" aria-label="Hide for 15 minutes" data-icon="quiet"></button><button id="undoButton" class="icon-button" title="Undo last action · Ctrl+Z" aria-label="Undo last action" data-icon="undo" disabled></button><button id="settingsButton" class="icon-button" title="Settings" aria-label="Settings" data-icon="settings"></button></div></footer>
     </div>
     <div id="dropHint" class="drop-hint" hidden><span data-icon="plus"></span><span>Drop text or URL to capture task</span></div>
@@ -83,6 +87,7 @@
         <div id="stickyHint" class="sticky-hint" hidden><span data-icon="leaf"></span><p>Stays pinned above your scrolling tasks.<br><span>No deadline — stays until you archive it manually.</span></p></div>
         <div class="field-label note-label"><label for="taskNote">Notes</label><span>Optional</span></div>
         <textarea id="taskNote" placeholder="Links, checklist steps, or context…" maxlength="5000" rows="3"></textarea>
+        <button id="noteLinkPill" type="button" class="note-link-pill" hidden><span data-icon="link"></span><span id="noteLinkText"></span></button>
         <label class="important-label"><span><span data-icon="star"></span>Mark as important</span><input id="taskImportant" type="checkbox"><span class="checkbox-visual"></span></label>
         <p id="editorError" class="form-error" role="alert" hidden></p>
       </div>
@@ -96,9 +101,9 @@
       <p id="settingsError" class="form-error" role="alert" hidden></p>
       <section class="settings-section"><h3>Appearance</h3><div class="theme-picker"><button data-theme="paper"><span class="theme-swatch paper-swatch"></span>Paper</button><button data-theme="dark"><span class="theme-swatch dark-swatch"></span>Night</button></div><div class="setting-line"><label>Accent</label><div class="accent-picker"><button data-accent="sage" aria-label="Sage"></button><button data-accent="blue" aria-label="Slate Blue"></button><button data-accent="rose" aria-label="Dusty Rose"></button></div></div><div class="setting-line opacity-line"><label for="opacityRange">Opacity <span id="opacityValue">100%</span></label><input id="opacityRange" type="range" min="80" max="100" step="5"></div></section>
       <section class="settings-section"><h3>Deadline Colors</h3><div class="setting-line"><label for="warnDays"><i class="soon-dot"></i>Approaching</label><select id="warnDays"><option value="1">1 day before</option><option value="3">3 days before</option><option value="7">7 days before</option><option value="14">14 days before</option></select></div><div class="setting-line"><label for="urgentHours"><i class="urgent-dot"></i>Urgent</label><select id="urgentHours"><option value="6">6 hours before</option><option value="12">12 hours before</option><option value="24">24 hours before</option></select></div><div class="setting-line"><span><i class="overdue-dot"></i>Overdue</span><span class="muted">Turns red automatically</span></div><div class="setting-line"><label for="reminders">Desktop alerts <small>Once per phase for urgent / overdue; on time for routines</small></label><label class="switch"><input id="reminders" type="checkbox"><span></span></label></div></section>
-      <section class="settings-section"><h3>Window &amp; Privacy</h3><div class="setting-line"><label for="autoTuck">Auto-tuck to edge <small>Shrinks to a 46px edge tab after switching away</small></label><label class="switch"><input id="autoTuck" type="checkbox"><span></span></label></div><div class="setting-line"><label for="alwaysOnTop">Always on top</label><label class="switch"><input id="alwaysOnTop" type="checkbox"><span></span></label></div><div class="setting-line"><label for="hideFromCapture">Hide from screen share <small>Invisible in Zoom, Teams, Discord, and OBS captures</small></label><label class="switch"><input id="hideFromCapture" type="checkbox"><span></span></label></div><div class="setting-line"><label for="launchOnStartup">Launch at Windows login <small>Starts tucked to edge; keep in a permanent folder</small></label><label class="switch"><input id="launchOnStartup" type="checkbox"><span></span></label></div><p id="shortcutHint" class="settings-hint">Ctrl+Alt+Q toggle · Ctrl+Alt+G ghost click-through · Ctrl+N new task</p></section>
+      <section class="settings-section"><h3>Window &amp; Privacy</h3><div class="setting-line"><label for="autoTuck">Auto-tuck to edge <small>Shrinks to a 46px edge tab after switching away</small></label><label class="switch"><input id="autoTuck" type="checkbox"><span></span></label></div><div class="setting-line"><label for="alwaysOnTop">Always on top</label><label class="switch"><input id="alwaysOnTop" type="checkbox"><span></span></label></div><div class="setting-line"><label for="hideFromCapture">Hide from screen share <small>Invisible in Zoom, Teams, Discord, and OBS captures</small></label><label class="switch"><input id="hideFromCapture" type="checkbox"><span></span></label></div><div class="setting-line"><label for="quietMinutes">Quiet break <small>Hide window &amp; pause alerts when clicking the moon button</small></label><select id="quietMinutes"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option></select></div><div class="setting-line"><label for="launchOnStartup">Launch at Windows login <small>Starts tucked to edge; keep in a permanent folder</small></label><label class="switch"><input id="launchOnStartup" type="checkbox"><span></span></label></div><p id="shortcutHint" class="settings-hint">Ctrl+Alt+Q toggle · Ctrl+Alt+G ghost · Ctrl+1–5 tabs · Ctrl+N new</p></section>
       <section class="settings-section"><h3>Data &amp; Backup</h3><p class="settings-hint">Saved locally on this computer with atomic writes and 20 daily snapshots. No account or cloud sync.</p><div class="backup-actions"><button id="exportButton" class="secondary-button"><span data-icon="export"></span>Export JSON</button><button id="importButton" class="secondary-button"><span data-icon="import"></span>Restore JSON</button></div><button id="exportMdButton" class="text-button">Export tasks as Markdown (.md) <span data-icon="arrow"></span></button><button id="folderButton" class="text-button">Open data folder <span data-icon="arrow"></span></button><button id="clearButton" class="text-button muted">Clear completed records</button></section>
-      <div class="about"><img src="../assets/mark.svg" alt=""><div><strong>Edgewise 1.3</strong><span>Ambient deadline bar for Windows.</span></div></div><button id="quitButton" class="text-button muted quit-button">Quit Edgewise</button>
+      <div class="about"><img src="../assets/mark.svg" alt=""><div><strong>Edgewise 1.4</strong><span>Ambient deadline bar for Windows.</span></div></div><button id="quitButton" class="text-button muted quit-button">Quit Edgewise</button>
     </div>
   </dialog>
   <script src="model.js"></script>

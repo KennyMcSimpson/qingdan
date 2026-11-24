@@ -66,6 +66,17 @@ async function main() {
     const u = (await state()).tasks.find(x => x.title === 'Urgent note');
     assert.ok(u && u.important);
     await action({ type: 'delete', id: u.id }); await count(1);
+
+    // Inline "//" note capture preserves https:// URLs and exposes 1-click link button.
+    await page.locator('#quickInput').fill('Check release +2h // see https://github.com/KennyMcSimpson/Edgewise/pull/123');
+    await page.waitForFunction(() => !document.querySelector('#quickPreview').hidden);
+    await page.locator('#quickInput').press('Enter');
+    await count(2);
+    const noted = (await state()).tasks.find(x => x.title === 'Check release');
+    assert.ok(noted && noted.dueAt && noted.note === 'see https://github.com/KennyMcSimpson/Edgewise/pull/123');
+    await page.locator('.task-row', { hasText: 'Check release' }).hover();
+    assert.equal(await page.getByRole('button', { name: 'Open link: Check release', exact: true }).isVisible(), true);
+    await action({ type: 'delete', id: noted.id }); await count(1);
   });
   await check('detail editor saves DDL, notes, and importance', async () => {
     await page.locator('#detailAdd').click(); await page.locator('#taskTitle').fill('Submit camera-ready PDF'); await page.locator('#taskNote').fill('Check anonymity, page limit, and figure resolution');
@@ -76,11 +87,20 @@ async function main() {
     const t = (await state()).tasks.find(t => t.title === 'Submit camera-ready PDF'); assert.ok(t.dueAt); assert.equal(t.important, true); assert.equal(t.note, 'Check anonymity, page limit, and figure resolution');
     assert.equal(await page.locator('.task-row[data-level=urgent]').count(), 1);
   });
-  await check('one-click snooze postpones a deadline and supports undo', async () => {
+  await check('one-click +1h and +1w snooze postpone deadlines via hover overlay and support undo', async () => {
     const before = (await state()).tasks.find(t => t.title === 'Submit camera-ready PDF').dueAt;
+    const row = page.locator('.task-row', { hasText: 'Submit camera-ready PDF' });
+    await row.hover();
     await page.getByRole('button', { name: 'Snooze +1h: Submit camera-ready PDF', exact: true }).click();
     const after = (await state()).tasks.find(t => t.title === 'Submit camera-ready PDF').dueAt;
     assert.ok(Date.parse(after) > Date.parse(before));
+    await page.locator('#undoButton').click();
+    assert.equal((await state()).tasks.find(t => t.title === 'Submit camera-ready PDF').dueAt, before);
+
+    await row.hover();
+    await page.getByRole('button', { name: 'Snooze +1w: Submit camera-ready PDF', exact: true }).click();
+    const afterWeek = (await state()).tasks.find(t => t.title === 'Submit camera-ready PDF').dueAt;
+    assert.ok(Date.parse(afterWeek) - Date.parse(before) >= 6 * 86400000);
     await page.locator('#undoButton').click();
     assert.equal((await state()).tasks.find(t => t.title === 'Submit camera-ready PDF').dueAt, before);
   });
@@ -102,7 +122,37 @@ async function main() {
     await page.getByRole('button', { name: 'Edit: Organize weekly reading notes', exact: true }).click(); await page.locator('#deleteTask').click(); await count(2); await page.locator('#undoButton').click(); await count(3);
     assert.equal((await state()).tasks.find(t => t.title === 'Organize weekly reading notes').note, 'Methods, results\nOpen questions and next steps');
   });
-  await check('search matches note text', async () => { await page.locator('#searchButton').click(); await page.locator('#searchInput').fill('next steps'); assert.equal(await page.locator('.task-row').count(), 1); await page.locator('#searchClose').click(); });
+  await check('search matches note text, shows cross-tab hints, and Ctrl+1..5 switches tabs', async () => {
+    await page.keyboard.press('Control+2');
+    await page.waitForFunction(() => document.querySelector('[data-tab=ddl]').classList.contains('active'));
+    await page.locator('#searchButton').click();
+    await page.locator('#searchInput').fill('verified snapshot');
+    await page.waitForFunction(() => !document.querySelector('#searchOtherTabs').hidden);
+    await page.locator('#searchOtherTabs .search-hint-pill', { hasText: 'Pinned (1)' }).click();
+    await page.waitForFunction(() => document.querySelector('[data-tab=sticky]').classList.contains('active'));
+    assert.equal(await page.locator('.task-row').count(), 1);
+    await page.locator('#searchClose').click();
+    await page.keyboard.press('Control+1');
+    await page.waitForFunction(() => document.querySelector('[data-tab=all]').classList.contains('active'));
+    await page.locator('#searchButton').click(); await page.locator('#searchInput').fill('next steps'); assert.equal(await page.locator('.task-row').count(), 1); await page.locator('#searchClose').click();
+  });
+  await check('URL drop splits clean title and note link pill, and open-url rejects unsafe schemes', async () => {
+    await page.evaluate(() => {
+      const dt = new DataTransfer();
+      dt.setData('text/uri-list', 'https://github.com/KennyMcSimpson/Edgewise/pull/123');
+      dt.setData('text/plain', 'https://github.com/KennyMcSimpson/Edgewise/pull/123');
+      document.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+    });
+    await page.waitForFunction(() => document.querySelector('#editorDialog').open);
+    assert.equal(await page.locator('#taskTitle').inputValue(), 'github.com · pull/123');
+    assert.equal(await page.locator('#taskNote').inputValue(), 'https://github.com/KennyMcSimpson/Edgewise/pull/123');
+    assert.equal(await page.locator('#noteLinkPill').isVisible(), true);
+    await page.locator('.close-editor').click();
+    const badJs = await page.evaluate(() => window.edgewise.command('open-url', 'javascript:alert(1)'));
+    assert.match(badJs.error || '', /http and https/i);
+    const badFile = await page.evaluate(() => window.edgewise.command('open-url', 'file:///etc/passwd'));
+    assert.match(badFile.error || '', /http and https/i);
+  });
   await check('HTML-like task text remains inert', async () => { const before = (await state()).tasks.length; await action({ type: 'add', task: { title: '<img src=x onerror="alert(1)">', note: '<script>bad</script>' } }); assert.equal(await page.locator('.task-row img,.task-row script').count(), 0); const t = (await state()).tasks.find(t => t.title.startsWith('<img')); await action({ type: 'delete', id: t.id }); assert.equal((await state()).tasks.length, before); });
   await check('appearance, stealth toggle, and threshold changes are persisted', async () => {
     await page.locator('#stealthButton').click();
@@ -137,20 +187,47 @@ async function main() {
     await page.locator('#pinButton').click(); assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isAlwaysOnTop()), false);
     await page.locator('#pinButton').click(); assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isAlwaysOnTop()), true);
   });
-  await check('collapse preserves expanded geometry and focus strip pauses auto-tuck', async () => {
+  await check('collapse preserves expanded geometry, avoids compact+ghost clip, and supports adjustable focus strip', async () => {
     const height = await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height);
     await page.locator('#collapseButton').click(); await page.waitForFunction(() => !document.querySelector('#compactView').hidden);
     assert.ok([132, 133].includes(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height)));
-    assert.equal(await page.locator('#compactTitle').textContent(), 'Submit camera-ready PDF'); await shot('compact'); await page.locator('#compactView').click();
-    assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height), height);
-    await page.getByRole('button', { name: 'Focus: Submit camera-ready PDF', exact: true }).click();
+    assert.equal(await page.locator('#compactTitle').textContent(), 'Submit camera-ready PDF'); await shot('compact');
+    // Compact + Ghost must use #ghostPill inside titlebar so #compactView never clips below 132px,
+    // and #ghostPill must fit without ellipsis even at minimum 340px width.
+    const info = await page.evaluate(() => window.edgewise.read());
+    if (info.ghostShortcutAvailable || info.shortcutAvailable || info.trayAvailable) {
+      await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setBounds({ width: 340, height: 132 }));
+      await page.evaluate(() => window.edgewise.command('ghost', true));
+      await page.waitForFunction(() => !document.querySelector('#ghostPill').hidden && document.querySelector('#ghostBanner').hidden);
+      const compactBox = await page.locator('#compactView').boundingBox();
+      assert.ok(compactBox && compactBox.y + compactBox.height <= 132.5, 'Compact strip must not clip in ghost mode: ' + JSON.stringify(compactBox));
+      const pillFit = await page.evaluate(() => { const p = document.querySelector('#ghostPill'); return { sw: p.scrollWidth, cw: p.clientWidth }; });
+      assert.ok(pillFit.sw <= pillFit.cw + 1, 'Ghost pill must not truncate at 340px: ' + JSON.stringify(pillFit));
+      await page.evaluate(() => window.edgewise.command('ghost', false));
+      await page.waitForFunction(() => document.querySelector('#ghostPill').hidden);
+      await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setBounds({ width: 388, height: 132 }));
+    }
+    // 1-click focus trigger straight from compact strip + preset cycle & +5m extend
+    await page.locator('#compactFocus').click();
     await page.waitForFunction(() => !document.querySelector('#focusControls').hidden);
     assert.equal((await page.evaluate(() => window.edgewise.read())).focusActive, true);
-    await page.locator('#focusToggle').click();
-    await page.locator('#focusToggle').click();
+    assert.equal(await page.locator('#focusProgress').isVisible(), true);
+    await page.locator('#focusToggle').click(); // pause
+    await page.locator('#focusTimer').click();  // 25 -> 45
+    assert.equal(await page.locator('#focusTimer').textContent(), '45:00');
+    assert.equal(await page.evaluate(() => localStorage.getItem('edgewise-focus-mins')), '45');
+    await page.locator('#focusTimer').click();  // 45 -> 60
+    await page.locator('#focusTimer').click();  // 60 -> 15
+    await page.locator('#focusTimer').click();  // 15 -> 25
+    assert.equal(await page.locator('#focusTimer').textContent(), '25:00');
+    await page.locator('#focusToggle').click(); // resume
+    await page.locator('#focusPlusFive').click();
+    const extText = await page.locator('#focusTimer').textContent();
+    assert.ok(extText === '30:00' || extText.startsWith('29:5'), 'Expected +5m extension, got ' + extText);
     await page.locator('#focusExit').click();
     await page.waitForFunction(() => document.querySelector('#compactView').hidden);
     assert.equal((await page.evaluate(() => window.edgewise.read())).focusActive, false);
+    assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height), height);
   });
   await check('restart restores tasks, local DDL time, and settings', async () => {
     const before = await state(); await desktop.close(); await start(); const after = await state(); assert.deepEqual(after.tasks, before.tasks); assert.deepEqual(after.settings, before.settings);
@@ -196,7 +273,14 @@ async function main() {
     assert.equal(await page.locator('#repeatSelect').inputValue(), 'daily'); assert.equal(await page.locator('#hasDue').isDisabled(), true);
     await page.locator('#dueTime').fill('21:30'); await page.locator('#editorHeading').click(); await shot('recurring-editor'); await page.locator('#saveTask').click();
     let t = (await state()).tasks.find(t => t.title === 'Tidy workspace' && t.repeat); assert.equal(t.repeat, 'daily'); assert.equal(new Date(t.dueAt).getHours(), 21); assert.equal(new Date(t.dueAt).getMinutes(), 30);
-    const old = t.dueAt; await page.getByRole('button', { name: 'Mark complete: Tidy workspace', exact: true }).click();
+    const old = t.dueAt;
+    await page.locator('.task-row', { hasText: 'Tidy workspace' }).hover();
+    await page.getByRole('button', { name: 'Skip occurrence: Tidy workspace', exact: true }).click();
+    assert.ok(Date.parse((await state()).tasks.find(x => x.id === t.id).dueAt) > Date.parse(old));
+    assert.equal(await page.locator('#countDone').textContent(), '0');
+    await page.locator('#undoButton').click();
+    assert.equal((await state()).tasks.find(x => x.id === t.id).dueAt, old);
+    await page.getByRole('button', { name: 'Mark complete: Tidy workspace', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#countDone').textContent === '1');
     const next = (await state()).tasks.find(x => x.id === t.id); assert.equal(next.completedAt, null); assert.ok(Date.parse(next.dueAt) > Date.parse(old));
     const history = (await state()).tasks.find(x => x.occurrenceOf === t.id); assert.equal(history.dueAt, old);
@@ -216,6 +300,7 @@ async function main() {
     const before = await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds());
     await page.locator('#dockButton').click(); await page.waitForFunction(() => !document.querySelector('#edgeView').hidden);
     const b = await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds()); assert.equal(b.width, 46); assert.ok([164, 165].includes(b.height));
+    assert.equal(await page.locator('#edgeCountdown').textContent(), 'OVER');
     assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isAlwaysOnTop()), true); await shot('edge');
     await page.locator('#edgeOpen').click(); await page.waitForFunction(() => document.querySelector('#edgeView').hidden);
     const after = await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds()); assert.equal(after.width, before.width); assert.equal(after.height, before.height);

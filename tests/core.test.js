@@ -367,3 +367,154 @@ test('restored full and compact windows remain reachable after a display is remo
   assert.deepEqual(L.visibleBounds(b, area), { x: 0, y: 18, width: 404, height: 710 });
   assert.deepEqual(L.visibleBounds(b, area, true), { x: 0, y: 596, width: 404, height: 132 });
 });
+
+// === v1.4 New Features: URL Extraction, Routine Skip, Quiet Duration, Enhanced NLP ===
+test('extractFirstUrl and titleFromUrl validate http(s) URLs and produce clean titles', () => {
+  assert.equal(M.extractFirstUrl('See https://github.com/KennyMcSimpson/Edgewise/pull/123, please!'), 'https://github.com/KennyMcSimpson/Edgewise/pull/123');
+  assert.equal(M.extractFirstUrl('Docs at (http://example.com/a/b).]'), 'http://example.com/a/b');
+  assert.equal(M.extractFirstUrl('Read https://en.wikipedia.org/wiki/Electron_(software_framework) later'), 'https://en.wikipedia.org/wiki/Electron_(software_framework)');
+  assert.equal(M.extractFirstUrl('(see https://en.wikipedia.org/wiki/Electron_(software_framework)).'), 'https://en.wikipedia.org/wiki/Electron_(software_framework)');
+  assert.equal(M.extractFirstUrl('Ignore javascript:alert(1) and file:///C:/Windows'), null);
+  assert.equal(M.extractFirstUrl('Broken http:// link'), null);
+  assert.equal(M.extractFirstUrl(''), null);
+
+  assert.equal(M.titleFromUrl('https://github.com/KennyMcSimpson/Edgewise/pull/123'), 'github.com · pull/123');
+  assert.equal(M.titleFromUrl('https://www.arxiv.org/abs/2601.12345'), 'arxiv.org · abs/2601.12345');
+  assert.equal(M.titleFromUrl('https://docs.python.org/'), 'docs.python.org');
+  assert.equal(M.titleFromUrl('javascript:alert(1)'), '');
+});
+
+test('skip advances active routines without recording a completed occurrence and supports undo', () => {
+  const due = local(2026, 10, 2, 21, 0); // Friday 21:00
+  const at = Date.parse(local(2026, 10, 2, 10, 0)); // Friday 10:00 (early skip!)
+  const s = {
+    ...M.defaultState(),
+    tasks: [M.task({ id: 'wd', title: 'Standup', dueAt: due, repeat: 'weekdays' }, at)],
+    notices: { wd: due + '|repeat' }
+  };
+  const next = M.apply(s, { type: 'skip', id: 'wd' }, () => 'unused', at);
+  assert.equal(next.tasks.length, 1, 'Skip must not create a Completed occurrence');
+  assert.equal(next.tasks[0].dueAt, local(2026, 10, 5, 21, 0), 'Friday skip on weekdays advances to Monday');
+  assert.equal(next.notices.wd, undefined);
+  // Original state stays untouched so archive undo restores cleanly
+  assert.equal(s.tasks[0].dueAt, due);
+
+  const oneTime = { ...M.defaultState(), tasks: [M.task({ id: 'o1', title: 'Paper', dueAt: due }, at)] };
+  assert.throws(() => M.apply(oneTime, { type: 'skip', id: 'o1' }, () => '', at), /routines/i);
+  const doneRoutine = { ...M.defaultState(), tasks: [M.task({ id: 'd1', title: 'Old', dueAt: due, repeat: 'daily', completedAt: at }, at)] };
+  assert.throws(() => M.apply(doneRoutine, { type: 'skip', id: 'd1' }, () => '', at), /routines/i);
+});
+
+test('quietMinutes setting sanitizes allowed presets and defaults cleanly', () => {
+  assert.equal(M.settings({}).quietMinutes, 15);
+  assert.equal(M.settings({ quietMinutes: 30 }).quietMinutes, 30);
+  assert.equal(M.settings({ quietMinutes: 60 }).quietMinutes, 60);
+  assert.equal(M.settings({ quietMinutes: 99 }).quietMinutes, 15);
+  assert.equal(M.settings({ quietMinutes: '30' }).quietMinutes, 15);
+});
+
+test('parseQuickInput extracts whitespace-bounded // notes without breaking https:// URLs', () => {
+  const ref = Date.parse(local(2026, 11, 24, 10, 0));
+  const withNote = M.parseQuickInput('Submit draft fri 18:00 // check table 2 and https://example.com', ref);
+  assert.equal(withNote.parsed, true);
+  assert.equal(withNote.title, 'Submit draft');
+  assert.equal(withNote.note, 'check table 2 and https://example.com');
+  assert.equal(withNote.dueAt, local(2026, 11, 27, 18, 0));
+  assert.ok(withNote.chips.some(c => c.kind === 'note' && c.label === 'Note'));
+
+  const onlyNote = M.parseQuickInput('Read https://github.com/KennyMcSimpson/Edgewise/pull/123 // merge after CI', ref);
+  assert.equal(onlyNote.parsed, true);
+  assert.equal(onlyNote.title, 'Read https://github.com/KennyMcSimpson/Edgewise/pull/123');
+  assert.equal(onlyNote.note, 'merge after CI');
+  assert.equal(onlyNote.dueAt, null);
+
+  const urlOnly = M.parseQuickInput('Visit https://example.com/docs', ref);
+  assert.equal(urlOnly.parsed, false);
+  assert.equal(urlOnly.title, 'Visit https://example.com/docs');
+  assert.equal(urlOnly.note, '');
+});
+
+test('parseQuickInput supports spoken relative offsets, ordinal dates, office anchors, next week, and repeat default', () => {
+  // 2026-11-24 is Tuesday 10:00
+  const ref = Date.parse(local(2026, 11, 24, 10, 0));
+
+  const in30 = M.parseQuickInput('Check build in 30m', ref);
+  assert.equal(in30.parsed, true);
+  assert.equal(in30.title, 'Check build');
+  assert.equal(Date.parse(in30.dueAt), ref + 30 * M.MINUTE);
+
+  const in3d = M.parseQuickInput('Follow up with reviewer in 3 days', ref);
+  assert.equal(in3d.parsed, true);
+  assert.equal(in3d.title, 'Follow up with reviewer');
+  assert.equal(Date.parse(in3d.dueAt), ref + 3 * M.DAY);
+
+  const ord1 = M.parseQuickInput('Camera ready Dec 5th', ref);
+  assert.equal(ord1.parsed, true);
+  assert.equal(ord1.title, 'Camera ready');
+  assert.equal(ord1.dueAt, local(2026, 12, 5, 23, 59));
+
+  const ord2 = M.parseQuickInput('Launch party May 1st 14:30', ref);
+  assert.equal(ord2.parsed, true);
+  assert.equal(ord2.title, 'Launch party');
+  assert.equal(ord2.dueAt, local(2027, 5, 1, 14, 30));
+
+  const eod = M.parseQuickInput('Send slides by eod', ref);
+  assert.equal(eod.parsed, true);
+  assert.equal(eod.title, 'Send slides');
+  assert.equal(eod.dueAt, local(2026, 11, 24, 18, 0));
+
+  const noon = M.parseQuickInput('Lunch sync tomorrow noon', ref);
+  assert.equal(noon.parsed, true);
+  assert.equal(noon.title, 'Lunch sync');
+  assert.equal(noon.dueAt, local(2026, 11, 25, 12, 0));
+
+  const nw = M.parseQuickInput('Ship quarterly report next week', ref);
+  assert.equal(nw.parsed, true);
+  assert.equal(nw.title, 'Ship quarterly report');
+  assert.equal(nw.dueAt, local(2026, 11, 30, 9, 0)); // Next Monday 09:00
+
+  const aft = M.parseQuickInput('Demo dry run fri afternoon', ref);
+  assert.equal(aft.parsed, true);
+  assert.equal(aft.title, 'Demo dry run');
+  assert.equal(aft.dueAt, local(2026, 11, 27, 14, 0));
+
+  const thisAft = M.parseQuickInput('Sync team this afternoon', ref);
+  assert.equal(thisAft.parsed, true);
+  assert.equal(thisAft.title, 'Sync team');
+  assert.equal(thisAft.dueAt, local(2026, 11, 24, 14, 0));
+
+  // Guard false positives on morning/afternoon/evening and 2D/3D technical phrases
+  assert.equal(M.parseQuickInput('Call morning star', ref).parsed, false);
+  assert.equal(M.parseQuickInput('Good morning team', ref).parsed, false);
+  assert.equal(M.parseQuickInput('Plan afternoon tea party', ref).parsed, false);
+  assert.equal(M.parseQuickInput('Morning standup', ref).parsed, false);
+  assert.equal(M.parseQuickInput('Evening walk', ref).parsed, false);
+  assert.equal(M.parseQuickInput('Afternoon tea', ref).parsed, false);
+  assert.equal(M.parseQuickInput('Good evening', ref).parsed, false);
+  assert.equal(M.parseQuickInput('Render mesh in 3D', ref).parsed, false);
+  assert.equal(M.parseQuickInput('Visualize embeddings in 2D', ref).parsed, false);
+  const meshLater = M.parseQuickInput('Render mesh in 3D in 20m', ref);
+  assert.equal(meshLater.parsed, true);
+  assert.equal(meshLater.title, 'Render mesh in 3D');
+  assert.equal(Date.parse(meshLater.dueAt), ref + 20 * M.MINUTE);
+  const morningTomorrow = M.parseQuickInput('Morning standup tomorrow', ref);
+  assert.equal(morningTomorrow.parsed, true);
+  assert.equal(morningTomorrow.title, 'Morning standup');
+  assert.equal(morningTomorrow.dueAt, local(2026, 11, 25, 23, 59));
+  const guardedDate = M.parseQuickInput('Call morning star tomorrow', ref);
+  assert.equal(guardedDate.parsed, true);
+  assert.equal(guardedDate.title, 'Call morning star');
+  assert.equal(guardedDate.dueAt, local(2026, 11, 25, 23, 59));
+
+  // Repeat tab context: time-only entry defaults to Daily when opts.defaultRepeat = 'daily'
+  const repDefault = M.parseQuickInput('Standup 09:00', ref, { defaultRepeat: 'daily' });
+  assert.equal(repDefault.parsed, true);
+  assert.equal(repDefault.title, 'Standup');
+  assert.equal(repDefault.repeat, 'daily');
+  assert.ok(repDefault.chips.some(c => c.kind === 'repeat' && c.label === 'Daily · 09:00'));
+
+  // Explicit date overrides defaultRepeat
+  const repExplicitDate = M.parseQuickInput('Standup fri 09:00', ref, { defaultRepeat: 'daily' });
+  assert.equal(repExplicitDate.repeat, null);
+  assert.equal(repExplicitDate.dueAt, local(2026, 11, 27, 9, 0));
+});

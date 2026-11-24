@@ -15,7 +15,7 @@ app.setAppUserModelId('com.edgewise.desktop');
 // A modest, static utility: software rendering also avoids driver-specific blank windows.
 app.disableHardwareAcceleration();
 let win, tray, store, state, quitting = false, collapsed = false, tucked = false, ghost = false, focusActive = false, normalHeight = 660;
-let normalBounds, edgeSide = 'right', boundsTimer, reminderTimer, tuckTimer, awayTimer;
+let normalBounds, edgeSide = 'right', boundsTimer, reminderTimer, tuckTimer, awayTimer, quietUntil = 0;
 let modalOpen = false, nativeDialogOpen = false, changingBounds = false;
 let shortcutAvailable = true, ghostShortcutAvailable = true, archive = [], fatal = false;
 const asset = name => path.join(__dirname, '..', 'assets', name);
@@ -27,7 +27,7 @@ function log(error) {
 function report(error) { log(error); if (win && !win.isDestroyed()) win.webContents.send('app:error', error.message || String(error)); }
 function payload() {
   return {
-    state, collapsed, tucked, ghost, focusActive, dataPath: store.directory, notice: store.notice,
+    state, collapsed, tucked, ghost, focusActive, quietUntil, dataPath: store.directory, notice: store.notice,
     shortcutAvailable, ghostShortcutAvailable, trayAvailable: !!tray, canUndo: archive.length > 0
   };
 }
@@ -105,12 +105,23 @@ function setGhost(value) {
 function show(focusAdd = false) {
   if (!win) return;
   clearTimeout(awayTimer); clearTimeout(tuckTimer);
+  if (quietUntil) { quietUntil = 0; updateTray(); }
   if (ghost) setGhost(false);
   if (win.isMinimized()) win.restore();
   if (tucked) setTucked(false);
   if (focusAdd && collapsed) setCollapsed(false);
   win.setBounds(visibleBounds(win.getBounds(), collapsed)); win.show(); win.focus();
   if (focusAdd) win.webContents.send('focus:add');
+}
+function dismissWindow() {
+  if (!win || win.isDestroyed() || modalOpen || nativeDialogOpen) return;
+  if (state.settings.autoTuck && !tucked && !focusActive) {
+    win.hide();
+    setTucked(true);
+    win.showInactive();
+  } else {
+    if (tray) win.hide(); else win.minimize();
+  }
 }
 function setCollapsed(value) {
   if (tucked) setTucked(false);
@@ -163,15 +174,24 @@ function scheduleTuck() {
   }, 900);
 }
 function away(minutes) {
-  const duration = [5, 15, 30, 60].includes(minutes) ? minutes : 15;
+  const duration = [5, 15, 30, 60].includes(minutes) ? minutes : (state?.settings?.quietMinutes || 15);
   clearTimeout(awayTimer); clearTimeout(tuckTimer);
   if (ghost) setGhost(false);
+  if (focusActive) { focusActive = false; broadcast(); }
+  quietUntil = Date.now() + duration * 60000;
+  updateTray();
   if (tray) win.hide(); else win.minimize();
   awayTimer = setTimeout(() => {
+    quietUntil = 0;
+    updateTray();
     if (quitting || win.isDestroyed()) return;
-    try { setTucked(true); win.showInactive(); } catch (error) { report(error); }
+    try {
+      if (win.isMinimized()) win.restore();
+      setTucked(true);
+      win.showInactive();
+    } catch (error) { report(error); }
   }, duration * 60000);
-  return { ok: true };
+  return { ok: true, quietUntil };
 }
 function applyNativeSettings(previous = state.settings) {
   setNativeAlwaysOnTop(ghost || tucked || state.settings.alwaysOnTop);
@@ -198,16 +218,28 @@ function updateSettings(patch) {
 function updateTray() {
   if (!tray || tray.isDestroyed()) return;
   const count = state.tasks.filter(t => !t.completedAt && t.kind === 'task').length;
-  tray.setToolTip('Edgewise · ' + count + (count === 1 ? ' task' : ' tasks'));
+  const quietActive = quietUntil > Date.now();
+  const qDate = quietActive ? new Date(quietUntil) : null;
+  const pad2 = n => String(n).padStart(2, '0');
+  const quietLabel = quietActive ? 'Quiet until ' + pad2(qDate.getHours()) + ':' + pad2(qDate.getMinutes()) : '';
+  tray.setToolTip('Edgewise · ' + count + (count === 1 ? ' task' : ' tasks') + (quietLabel ? ' · ' + quietLabel : ''));
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open Edgewise', click: () => show() },
     { label: 'Quick Add Task', click: () => show(true) },
+    ...(quietActive ? [{ label: 'Resume Now (' + quietLabel + ')', click: () => show() }] : []),
     { type: 'separator' },
     { label: 'Always on Top', type: 'checkbox', checked: state.settings.alwaysOnTop, click: item => { try { updateSettings({ alwaysOnTop: item.checked }); } catch (e) { report(e); } } },
     { label: 'Hide from Screen Share', type: 'checkbox', checked: state.settings.hideFromCapture, click: item => { try { updateSettings({ hideFromCapture: item.checked }); } catch (e) { report(e); } } },
     { label: 'Ghost Click-Through (Ctrl+Alt+G)', type: 'checkbox', checked: ghost, click: item => { try { setGhost(item.checked); } catch (e) { report(e); } } },
     { label: tucked ? 'Expand Window' : 'Tuck to Edge', click: () => { try { if (tucked) show(); else setTucked(true); } catch (e) { report(e); } } },
-    { label: 'Hide for 15 Minutes', click: () => away(15) },
+    {
+      label: 'Quiet Mode',
+      submenu: [
+        { label: 'Hide for 15 Minutes', click: () => away(15) },
+        { label: 'Hide for 30 Minutes', click: () => away(30) },
+        { label: 'Hide for 60 Minutes', click: () => away(60) }
+      ]
+    },
     { label: 'Launch at Login', type: 'checkbox', checked: state.settings.launchOnStartup, enabled: process.platform === 'win32', click: item => { try { updateSettings({ launchOnStartup: item.checked }); } catch (e) { report(e); } } },
     { type: 'separator' },
     { label: 'Quit Edgewise', click: () => app.quit() }
@@ -216,6 +248,19 @@ function updateTray() {
 function notifyDue() {
   if (!state) return;
   try { const rolled = Model.rollRecurring(state); if (rolled !== state) commit(rolled); } catch (error) { report(error); return; }
+  if (quietUntil > 0) {
+    if (Date.now() < quietUntil) return;
+    quietUntil = 0;
+    clearTimeout(awayTimer);
+    updateTray();
+    if (!quitting && win && !win.isDestroyed() && (!win.isVisible() || win.isMinimized())) {
+      try {
+        if (win.isMinimized()) win.restore();
+        setTucked(true);
+        win.showInactive();
+      } catch (error) { report(error); }
+    }
+  }
   if (!tray) return;
   const candidates = Model.reminderCandidates(state);
   if (!candidates.length) return;
@@ -270,10 +315,40 @@ function bindIPC() {
     return commit(Model.apply(state, action, crypto.randomUUID), true);
   });
   handler('window:command', async (name, value) => {
-    if (name === 'hide') { focusActive = false; if (ghost) setGhost(false); if (tray) win.hide(); else win.minimize(); return { ok: true }; }
+    if (name === 'hide') {
+      const wasFocus = focusActive;
+      focusActive = false;
+      if (ghost) setGhost(false);
+      if (wasFocus) broadcast();
+      if (tray) win.hide(); else win.minimize();
+      return { ok: true };
+    }
+    if (name === 'dismiss') {
+      if (!modalOpen && !nativeDialogOpen && !ghost && !tucked && !focusActive && state.settings.autoTuck) {
+        dismissWindow();
+        return payload();
+      }
+      return { ok: true };
+    }
     if (name === 'collapse') return setCollapsed(value);
-    if (name === 'tuck') { if (!value) clearTimeout(awayTimer); const result = setTucked(value); if (!value) { win.show(); win.focus(); } return result; }
+    if (name === 'tuck') {
+      if (!value) {
+        clearTimeout(awayTimer);
+        if (quietUntil) { quietUntil = 0; updateTray(); }
+      }
+      const result = setTucked(value);
+      if (!value) { win.show(); win.focus(); }
+      return result;
+    }
     if (name === 'ghost') return setGhost(value);
+    if (name === 'open-url') {
+      if (typeof value !== 'string' || !value || value.length > 4096) throw new Error('Invalid link URL.');
+      let parsedUrl;
+      try { parsedUrl = new URL(value.trim()); } catch (_) { throw new Error('Invalid link URL.'); }
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') throw new Error('Only http and https links can be opened.');
+      await shell.openExternal(parsedUrl.href);
+      return { ok: true };
+    }
     if (name === 'focus-mode') {
       focusActive = value === true;
       if (focusActive) clearTimeout(tuckTimer);
@@ -281,6 +356,7 @@ function bindIPC() {
       return payload();
     }
     if (name === 'focus-done') {
+      if (Date.now() < quietUntil) return { ok: true };
       const title = typeof value === 'string' && value.trim() ? value.trim().slice(0, 80) : 'Focus session finished.';
       try {
         if (tray && process.platform === 'win32') {
@@ -342,7 +418,7 @@ function createWindow() {
       win.showInactive();
     } else { win.show(); win.focus(); }
   });
-  win.on('close', event => { if (!quitting) { event.preventDefault(); if (ghost) setGhost(false); if (tray) win.hide(); else win.minimize(); } });
+  win.on('close', event => { if (!quitting) { event.preventDefault(); const wasFocus = focusActive; focusActive = false; if (ghost) setGhost(false); if (wasFocus) broadcast(); if (tray) win.hide(); else win.minimize(); } });
   win.on('blur', scheduleTuck); win.on('focus', () => clearTimeout(tuckTimer));
   for (const event of ['resize', 'move']) win.on(event, () => { if (changingBounds) return; clearTimeout(boundsTimer); boundsTimer = setTimeout(saveBounds, 650); });
   win.loadFile(page);
@@ -379,7 +455,7 @@ else {
         tray = new Tray(nativeImage.createFromPath(asset('icon.png')));
         tray.on('click', () => show()); tray.on('double-click', () => show()); tray.on('balloon-click', () => show()); updateTray();
       } catch (error) { log(error); }
-      shortcutAvailable = globalShortcut.register('CommandOrControl+Alt+Q', () => { if (win.isVisible() && win.isFocused() && !ghost) win.hide(); else show(true); });
+      shortcutAvailable = globalShortcut.register('CommandOrControl+Alt+Q', () => { if (win.isVisible() && win.isFocused() && !ghost && !tucked) dismissWindow(); else show(true); });
       ghostShortcutAvailable = globalShortcut.register('CommandOrControl+Alt+G', () => { try { setGhost(!ghost); } catch (e) { report(e); } });
       reminderTimer = setInterval(notifyDue, 30000);
       setTimeout(notifyDue, 4000);

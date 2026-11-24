@@ -7,7 +7,7 @@
   const defaults = Object.freeze({
     theme: 'paper', accent: 'sage', alwaysOnTop: true,
     opacity: 1, warnDays: 3, urgentHours: 24, reminders: true, launchOnStartup: false,
-    autoTuck: true, stickyCollapsed: false, hideFromCapture: false
+    autoTuck: true, stickyCollapsed: false, hideFromCapture: false, quietMinutes: 15
   });
   function defaultState() { return { version: 1, tasks: [], settings: { ...defaults }, window: {}, notices: {} }; }
   function settings(input = {}) {
@@ -22,7 +22,8 @@
       launchOnStartup: input.launchOnStartup === true,
       autoTuck: typeof input.autoTuck === 'boolean' ? input.autoTuck : true,
       stickyCollapsed: input.stickyCollapsed === true,
-      hideFromCapture: input.hideFromCapture === true
+      hideFromCapture: input.hideFromCapture === true,
+      quietMinutes: [15, 30, 60].includes(input.quietMinutes) ? input.quietMinutes : 15
     };
   }
   const repeats = Object.freeze({ daily: 'Daily', weekdays: 'Weekdays', weekly: 'Weekly' });
@@ -140,6 +141,53 @@
     return { ratio, level: d.level };
   }
 
+  function extractFirstUrl(text) {
+    if (typeof text !== 'string' || !text) return null;
+    const matches = text.match(/https?:\/\/[^\s<>"']+/gi);
+    if (!matches) return null;
+    for (const raw of matches) {
+      let cleaned = raw;
+      while (cleaned.length > 0) {
+        if (/[.,;:!?\]]$/.test(cleaned)) {
+          cleaned = cleaned.slice(0, -1);
+          continue;
+        }
+        if (cleaned.endsWith(')')) {
+          const opens = (cleaned.match(/\(/g) || []).length;
+          const closes = (cleaned.match(/\)/g) || []).length;
+          if (closes > opens) {
+            cleaned = cleaned.slice(0, -1);
+            continue;
+          }
+        }
+        break;
+      }
+      try {
+        const u = new URL(cleaned);
+        if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  function titleFromUrl(rawUrl) {
+    if (typeof rawUrl !== 'string' || !rawUrl.trim()) return '';
+    try {
+      const u = new URL(rawUrl.trim());
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+      const host = u.hostname.replace(/^www\./i, '');
+      const segs = u.pathname.split('/').filter(Boolean).map(s => {
+        try { return decodeURIComponent(s); } catch (_) { return s; }
+      });
+      if (!segs.length) return host.slice(0, 140);
+      const tail = segs.length > 2 ? segs.slice(-2).join('/') : segs.join('/');
+      const label = host + ' · ' + tail;
+      return label.length > 140 ? label.slice(0, 139) + '…' : label;
+    } catch (_) {
+      return '';
+    }
+  }
+
   function parseTimeToken(hourStr, minStr, meridiem) {
     let h = Number(hourStr), m = minStr ? Number(minStr) : 0;
     if (!Number.isInteger(h) || !Number.isInteger(m) || m < 0 || m > 59) return null;
@@ -154,16 +202,40 @@
     return { hour: h, minute: m };
   }
 
-  function extractTime(text) {
+  const OFFICE_ANCHORS = Object.freeze({ eod: 18, noon: 12, morning: 9, afternoon: 14, evening: 19 });
+
+  function spliceOut(text, index, length) {
+    const left = text.slice(0, index).trim();
+    const right = text.slice(index + length).trim();
+    return {
+      text: left && right ? left + ' ' + right : (left || right),
+      seam: left ? left.length : 0
+    };
+  }
+
+  function extractTime(text, dateRemovedIndex = -1) {
     const m12 = text.match(/(?:^|\s)(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)(?=\s|$)/i);
     if (m12) {
       const t = parseTimeToken(m12[1], m12[2], m12[3]);
-      if (t) return { ...t, text: (text.slice(0, m12.index) + ' ' + text.slice(m12.index + m12[0].length)).trim() };
+      if (t) return { ...t, text: spliceOut(text, m12.index, m12[0].length).text };
     }
     const m24 = text.match(/(?:^|\s)(?:at\s+)?([01]?\d|2[0-3]):([0-5]\d)(?=\s|$)/i);
     if (m24) {
       const t = parseTimeToken(m24[1], m24[2], null);
-      if (t) return { ...t, text: (text.slice(0, m24.index) + ' ' + text.slice(m24.index + m24[0].length)).trim() };
+      if (t) return { ...t, text: spliceOut(text, m24.index, m24[0].length).text };
+    }
+    const mUnambig = text.match(/(?:^|\s)(?:(?:at|by)\s+)?(eod|noon)(?=\s|$)/i);
+    if (mUnambig) {
+      const hour = OFFICE_ANCHORS[mUnambig[1].toLowerCase()];
+      return { hour, minute: 0, text: spliceOut(text, mUnambig.index, mUnambig[0].length).text };
+    }
+    for (const m of text.matchAll(/(?:^|\s)((?:(?:at|in\s+the|this)\s+)?)(morning|afternoon|evening)(?=\s|$)/gi)) {
+      const hasPrefix = !!(m[1] && m[1].trim());
+      const nearDate = dateRemovedIndex >= 0 && Math.abs(m.index - dateRemovedIndex) <= 1;
+      if (hasPrefix || nearDate) {
+        const hour = OFFICE_ANCHORS[m[2].toLowerCase()];
+        return { hour, minute: 0, text: spliceOut(text, m.index, m[0].length).text };
+      }
     }
     return null;
   }
@@ -175,17 +247,29 @@
 
   // Zero-dependency offline natural-language quick capture parser.
   // Never mutates input if removing tokens would leave an empty title.
-  function parseQuickInput(raw, now = Date.now()) {
+  function parseQuickInput(raw, now = Date.now(), opts = {}) {
     const trimmed = typeof raw === 'string' ? raw.trim() : '';
-    const fallback = { title: trimmed, kind: 'task', dueAt: null, repeat: null, important: false, parsed: false, chips: [] };
+    const fallback = { title: trimmed, note: '', kind: 'task', dueAt: null, repeat: null, important: false, parsed: false, chips: [] };
     if (!trimmed) return fallback;
 
     let work = trimmed;
+    let note = '';
     let kind = 'task';
     let important = false;
     let dueAt = null;
     let repeat = null;
     const chips = [];
+
+    // 0. Inline note separator: whitespace-bounded " // " (never splits URLs like https://...)
+    const noteSep = work.match(/\s+\/\/\s+/);
+    if (noteSep) {
+      const left = work.slice(0, noteSep.index).trim();
+      const right = work.slice(noteSep.index + noteSep[0].length).trim();
+      if (left && right) {
+        work = left;
+        note = right.slice(0, 5000);
+      }
+    }
 
     // 1. Pinned / sticky prefix: "pin: ..." or "sticky: ..."
     const pinMatch = work.match(/^(?:pin|sticky)\s*:\s*(.+)$/i);
@@ -210,6 +294,8 @@
     if (kind === 'task') {
       const base = new Date(now);
       let explicitDate = null;
+      let hadExplicitCalendarDate = false;
+      let dateRemovedIndex = -1;
       let defaultHour = 23, defaultMinute = 59;
 
       // 3. Recurrence: "every day", "daily", "every weekday(s)", "weekdays", "every mon..sun", "weekly"
@@ -222,37 +308,44 @@
         repeat = 'daily';
         defaultHour = 9; defaultMinute = 0;
         explicitDate = new Date(base.getFullYear(), base.getMonth(), base.getDate());
-        work = (work.slice(0, recEveryDay.index) + ' ' + work.slice(recEveryDay.index + recEveryDay[0].length)).trim();
+        const sp = spliceOut(work, recEveryDay.index, recEveryDay[0].length);
+        work = sp.text; dateRemovedIndex = sp.seam;
       } else if (recWeekdays) {
         repeat = 'weekdays';
         defaultHour = 9; defaultMinute = 0;
         explicitDate = new Date(base.getFullYear(), base.getMonth(), base.getDate());
-        work = (work.slice(0, recWeekdays.index) + ' ' + work.slice(recWeekdays.index + recWeekdays[0].length)).trim();
+        const sp = spliceOut(work, recWeekdays.index, recWeekdays[0].length);
+        work = sp.text; dateRemovedIndex = sp.seam;
       } else if (recEveryWeekday) {
         repeat = 'weekly';
         defaultHour = 9; defaultMinute = 0;
         const targetDay = DAY_NAMES[recEveryWeekday[1].toLowerCase()];
         const delta = (targetDay - base.getDay() + 7) % 7;
         explicitDate = new Date(base.getFullYear(), base.getMonth(), base.getDate() + delta);
-        work = (work.slice(0, recEveryWeekday.index) + ' ' + work.slice(recEveryWeekday.index + recEveryWeekday[0].length)).trim();
+        const sp = spliceOut(work, recEveryWeekday.index, recEveryWeekday[0].length);
+        work = sp.text; dateRemovedIndex = sp.seam;
       } else if (recWeekly) {
         repeat = 'weekly';
         defaultHour = 9; defaultMinute = 0;
         explicitDate = new Date(base.getFullYear(), base.getMonth(), base.getDate());
-        work = (work.slice(0, recWeekly.index) + ' ' + work.slice(recWeekly.index + recWeekly[0].length)).trim();
+        const sp = spliceOut(work, recWeekly.index, recWeekly[0].length);
+        work = sp.text; dateRemovedIndex = sp.seam;
       }
 
-      // 4. Relative duration: "+30m", "+2h", "+3d", "+1w" (only if not recurring)
+      // 4. Relative duration: "+30m", "+2h", "+3d", "+1w" or "in 30m", "in 3 days", "in 2h" (only if not recurring)
+      // Reject uppercase single-letter "in 2D" / "in 3D" / "in 5M" so dimensions and units stay literal.
       let relativeMs = null;
       if (!repeat) {
-        const relMatch = work.match(/(?:^|\s)\+(\d{1,3})(m|min|mins|h|hr|hrs|d|w)(?=\s|$)/i);
-        if (relMatch) {
-          const amount = Number(relMatch[1]);
-          const unit = relMatch[2].toLowerCase()[0];
+        for (const relMatch of work.matchAll(/(?:^|\s)(?:\+(\d{1,3})(m|min|mins|h|hr|hrs|d|day|days|w|wk|wks)|in\s+(\d{1,3})\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks))(?=\s|$)/gi)) {
+          const rawUnit = relMatch[2] || relMatch[4];
+          if (!relMatch[1] && rawUnit.length === 1 && rawUnit !== rawUnit.toLowerCase()) continue;
+          const amount = Number(relMatch[1] || relMatch[3]);
+          const unit = rawUnit.toLowerCase()[0];
           if (amount > 0 && amount <= 365) {
             const mult = unit === 'm' ? MINUTE : unit === 'h' ? HOUR : unit === 'd' ? DAY : 7 * DAY;
             relativeMs = now + amount * mult;
-            work = (work.slice(0, relMatch.index) + ' ' + work.slice(relMatch.index + relMatch[0].length)).trim();
+            work = spliceOut(work, relMatch.index, relMatch[0].length).text;
+            break;
           }
         }
       }
@@ -262,14 +355,17 @@
       if (!relativeMs && !explicitDate) {
         const isoMatch = work.match(/(?:^|\s)(\d{4})-(\d{1,2})-(\d{1,2})(?=\s|$)/);
         const slashMatch = !isoMatch && work.match(/(?:^|\s)(?:(?:on|by|due)\s+)?(\d{1,2})\/(\d{1,2})(?=\s|$)(?!\s+of\b)/i);
-        const monthMatch = !isoMatch && !slashMatch && work.match(/(?:^|\s)(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?=\s|$)/i);
-        const dayWordMatch = !isoMatch && !slashMatch && !monthMatch && work.match(/(?:^|\s)((?:(?:on|by|this|next)\s+)?(?:today|tonight|tomorrow|tmr|sun(?:day)?|mon(?:day)?|tue(?:s|sday)?|wed(?:s|nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?))(?=\s|$)/i);
+        const monthMatch = !isoMatch && !slashMatch && work.match(/(?:^|\s)(?:(?:on|by|due)\s+)?(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?(?=\s|$)/i);
+        const nextWeekMatch = !isoMatch && !slashMatch && !monthMatch && work.match(/(?:^|\s)(?:(?:on|by)\s+)?next\s+week(?=\s|$)/i);
+        const dayWordMatch = !isoMatch && !slashMatch && !monthMatch && !nextWeekMatch && work.match(/(?:^|\s)((?:(?:on|by|this|next)\s+)?(?:today|tonight|tomorrow|tmr|sun(?:day)?|mon(?:day)?|tue(?:s|sday)?|wed(?:s|nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?))(?=\s|$)/i);
 
         if (isoMatch) {
           const y = Number(isoMatch[1]), mo = Number(isoMatch[2]) - 1, dy = Number(isoMatch[3]);
           if (y >= 1970 && y <= 2100 && validCalendarDate(y, mo, dy)) {
             explicitDate = new Date(y, mo, dy);
-            work = (work.slice(0, isoMatch.index) + ' ' + work.slice(isoMatch.index + isoMatch[0].length)).trim();
+            hadExplicitCalendarDate = true;
+            const sp = spliceOut(work, isoMatch.index, isoMatch[0].length);
+            work = sp.text; dateRemovedIndex = sp.seam;
           }
         } else if (slashMatch) {
           const mo = Number(slashMatch[1]) - 1, dy = Number(slashMatch[2]);
@@ -279,7 +375,9 @@
             if (candidate.getTime() < now - DAY) y += 1;
             if (validCalendarDate(y, mo, dy)) {
               explicitDate = new Date(y, mo, dy);
-              work = (work.slice(0, slashMatch.index) + ' ' + work.slice(slashMatch.index + slashMatch[0].length)).trim();
+              hadExplicitCalendarDate = true;
+              const sp = spliceOut(work, slashMatch.index, slashMatch[0].length);
+              work = sp.text; dateRemovedIndex = sp.seam;
             }
           }
         } else if (monthMatch) {
@@ -291,9 +389,18 @@
             if (candidate.getTime() < now - DAY) y += 1;
             if (validCalendarDate(y, mo, dy)) {
               explicitDate = new Date(y, mo, dy);
-              work = (work.slice(0, monthMatch.index) + ' ' + work.slice(monthMatch.index + monthMatch[0].length)).trim();
+              hadExplicitCalendarDate = true;
+              const sp = spliceOut(work, monthMatch.index, monthMatch[0].length);
+              work = sp.text; dateRemovedIndex = sp.seam;
             }
           }
+        } else if (nextWeekMatch) {
+          const delta = (1 - base.getDay() + 7) % 7 || 7;
+          explicitDate = new Date(base.getFullYear(), base.getMonth(), base.getDate() + delta);
+          defaultHour = 9; defaultMinute = 0;
+          hadExplicitCalendarDate = true;
+          const sp = spliceOut(work, nextWeekMatch.index, nextWeekMatch[0].length);
+          work = sp.text; dateRemovedIndex = sp.seam;
         } else if (dayWordMatch) {
           const rawToken = dayWordMatch[1].toLowerCase().replace(/\s+/g, ' ');
           const prefixMatch = /^(on|by|this|next)\s+(.+)$/.exec(rawToken);
@@ -326,19 +433,24 @@
               explicitDate = new Date(base.getFullYear(), base.getMonth(), base.getDate() + delta);
             }
             if (explicitDate) {
-              work = (work.slice(0, dayWordMatch.index) + ' ' + work.slice(dayWordMatch.index + dayWordMatch[0].length)).trim();
+              hadExplicitCalendarDate = true;
+              const sp = spliceOut(work, dayWordMatch.index, dayWordMatch[0].length);
+              work = sp.text; dateRemovedIndex = sp.seam;
             }
           }
         }
       }
 
-      // 6. Optional wall-clock time (e.g. "18:00", "6pm", "at 9:30am")
+      // 6. Optional wall-clock time (e.g. "18:00", "6pm", "at 9:30am", "eod", "noon", "this afternoon")
       if (relativeMs) {
         dueAt = new Date(relativeMs).toISOString();
       } else {
-        const timeFound = extractTime(work);
+        const timeFound = extractTime(work, dateRemovedIndex);
         if (timeFound) {
           work = timeFound.text;
+          if (!repeat && !hadExplicitCalendarDate && opts && typeof opts.defaultRepeat === 'string' && Object.hasOwn(repeats, opts.defaultRepeat)) {
+            repeat = opts.defaultRepeat;
+          }
           if (!explicitDate) {
             explicitDate = new Date(base.getFullYear(), base.getMonth(), base.getDate(), timeFound.hour, timeFound.minute, 0, 0);
             if (!repeat && explicitDate.getTime() <= now) explicitDate.setDate(explicitDate.getDate() + 1);
@@ -366,9 +478,11 @@
       }
     }
 
+    if (note) chips.push({ kind: 'note', label: 'Note' });
+
     const cleanTitle = work.replace(/\s+/g, ' ').replace(/[-:,;]+$/, '').trim();
     if (!cleanTitle || chips.length === 0) return fallback;
-    return { title: cleanTitle.slice(0, 160), kind, dueAt, repeat, important, parsed: true, chips };
+    return { title: cleanTitle.slice(0, 160), note, kind, dueAt, repeat, important, parsed: true, chips };
   }
 
   function compare(a, b) {
@@ -431,6 +545,12 @@
       const newDue = snoozeDue(old.dueAt, action.preset, now);
       next.tasks[index] = task({ ...old, dueAt: newDue, updatedAt: now }, now);
       delete next.notices[old.id];
+    } else if (action.type === 'skip') {
+      const t = next.tasks.find(t => t.id === action.id);
+      if (!t || t.completedAt || !t.repeat) throw new Error('Only active routines can be skipped.');
+      t.dueAt = nextRepeat(t.dueAt, t.repeat, Math.max(now, Date.parse(t.dueAt)), false);
+      t.updatedAt = now;
+      delete next.notices[t.id];
     } else if (action.type === 'toggle') {
       const t = next.tasks.find(t => t.id === action.id);
       if (!t) throw new Error('This record no longer exists.');
@@ -514,7 +634,7 @@
 
   return {
     MINUTE, HOUR, DAY, defaults, repeats, nextRepeat, rollRecurring, defaultState,
-    settings, task, validateState, deadline, runway, parseQuickInput, snoozeDue,
-    groups, apply, reminderCandidates, toMarkdown
+    settings, task, validateState, deadline, runway, extractFirstUrl, titleFromUrl,
+    parseQuickInput, snoozeDue, groups, apply, reminderCandidates, toMarkdown
   };
 });
