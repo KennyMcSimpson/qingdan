@@ -1,6 +1,6 @@
 'use strict';
 const { contextBridge, ipcRenderer } = require('electron');
-contextBridge.exposeInMainWorld('qingdan', Object.freeze({
+contextBridge.exposeInMainWorld('edgewise', Object.freeze({
   read: () => ipcRenderer.invoke('state:read'),
   action: action => ipcRenderer.invoke('state:action', action),
   command: (name, value) => ipcRenderer.invoke('window:command', name, value),

@@ -11,6 +11,8 @@ build-tools/
 !.env.example
 .DS_Store
 Thumbs.db
+edgewise.json
+edgewise.json.bak
 qingdan.json
 qingdan.json.bak
 *.damaged-*

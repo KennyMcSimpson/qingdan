@@ -1,18 +1,25 @@
-Qingdan 1.2.0 — Quick Start (Windows x64 Portable)
-==================================================
+Edgewise 1.3.0 — Quick Start (Windows x64 Portable)
+===================================================
 
-Qingdan is an ambient Windows deadline bar that stays within sight without
-getting in the way. Completely offline — no account, no cloud sync, no telemetry.
+Edgewise (formerly Qingdan) is an ambient Windows deadline bar that stays
+within sight without getting in the way. Completely offline — no account,
+no cloud sync, no telemetry.
 
 HOW TO LAUNCH
 -------------
 1. Extract the entire ZIP archive to a permanent folder (do not run from inside
    the ZIP preview).
-2. Double-click "Qingdan.exe" (or "Launch-Qingdan.cmd").
-3. Keep all neighboring runtime files beside Qingdan.exe.
+2. Double-click "Edgewise.exe" (or "Launch-Edgewise.cmd").
+3. Keep all neighboring runtime files beside Edgewise.exe.
 
-KEY FEATURES IN 1.2.0
----------------------
+AUTOMATIC MIGRATION FROM QINGDAN
+--------------------------------
+If you previously used Qingdan, Edgewise automatically copies your existing
+tasks, settings, and snapshots from %APPDATA%\Qingdan into %APPDATA%\Edgewise
+on first launch. Your original Qingdan folder is left completely untouched.
+
+KEY FEATURES
+------------
 - Natural-Language Quick Capture:
     "Submit draft fri 18:00 !"       -> Friday 18:00, marked important
     "Review PR +2h"                  -> 2 hours from now
@@ -20,12 +27,12 @@ KEY FEATURES IN 1.2.0
     "pin: Always verify checksums"   -> Pinned note on the top shelf
     Click "Raw" in the live preview bar to keep your exact literal title.
 - Screen-Share Stealth (Eye-Off button):
-    Hides Qingdan from Zoom, Teams, Discord, OBS, and Windows screenshots while
-    staying visible to you.
+    Hides Edgewise from Zoom, Teams, Discord, OBS, and Windows screenshots
+    while staying visible to you.
 - Ghost Click-Through Mode (Ctrl+Alt+G):
     Turns the bar into a semi-transparent click-through overlay over fullscreen
-    IDEs or PDFs. Press Ctrl+Alt+G, Esc (when focused), Ctrl+Alt+Q, or click the
-    system tray icon to exit safely.
+    IDEs or PDFs. Press Ctrl+Alt+G, Esc (when focused), Ctrl+Alt+Q, or click
+    the system tray icon to exit safely.
 - Single-Task Focus Strip (Crosshair button on any task):
     Collapses to a 132px strip with a drift-free 25:00 timer, pausing auto-tuck
     until you complete or exit.
@@ -35,7 +42,7 @@ KEY FEATURES IN 1.2.0
 
 GLOBAL SHORTCUTS
 ----------------
-- Ctrl+Alt+Q : Show / Hide Qingdan and focus Quick Add
+- Ctrl+Alt+Q : Show / Hide Edgewise and focus Quick Add
 - Ctrl+Alt+G : Toggle Ghost Click-Through overlay
 - Ctrl+N     : Open Detailed Task Editor
 - Ctrl+F     : Search titles and notes
@@ -43,6 +50,6 @@ GLOBAL SHORTCUTS
 
 DATA & PRIVACY
 --------------
-Your tasks are stored locally in %APPDATA%\Qingdan with atomic writes and 20
+Your tasks are stored locally in %APPDATA%\Edgewise with atomic writes and 20
 daily backup snapshots. Source code & checksums:
-https://github.com/KennyMcSimpson/qingdan
+https://github.com/KennyMcSimpson/edgewise

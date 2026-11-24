@@ -1,6 +1,6 @@
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.QingdanModel = factory();
+  else root.EdgewiseModel = factory();
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
   const MINUTE = 60000, HOUR = 3600000, DAY = 24 * HOUR;
@@ -92,7 +92,7 @@
   }
 
   function validateState(input) {
-    if (!input || input.version !== 1 || !Array.isArray(input.tasks)) throw new Error('Not a valid Qingdan backup or unsupported version.');
+    if (!input || input.version !== 1 || !Array.isArray(input.tasks)) throw new Error('Not a valid Edgewise backup or unsupported version.');
     if (input.tasks.length > 5000) throw new Error('Up to 5,000 records are supported. Archive old entries first.');
     const tasks = input.tasks.map(t => task(t));
     if (new Set(tasks.map(t => t.id)).size !== tasks.length) throw new Error('Backup contains duplicate record IDs.');
@@ -482,7 +482,7 @@
   }
 
   function toMarkdown(state, now = Date.now()) {
-    const lines = ['# Qingdan Tasks', '', '_Exported ' + fmtLocalIso(new Date(now).toISOString()) + '_', ''];
+    const lines = ['# Edgewise Tasks', '', '_Exported ' + fmtLocalIso(new Date(now).toISOString()) + '_', ''];
     const activeGroups = groups(state.tasks, 'all', '', state.settings, now);
     const doneGroups = groups(state.tasks, 'done', '', state.settings, now);
     const allGroups = [...activeGroups, ...doneGroups];

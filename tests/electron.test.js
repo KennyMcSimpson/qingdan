@@ -6,26 +6,26 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const root = path.resolve(__dirname, '..');
-const data = fs.mkdtempSync(path.join(os.tmpdir(), 'qingdan-ui-'));
-const images = path.resolve(process.env.QINGDAN_SCREENSHOTS || path.join(root, 'qa'));
+const data = fs.mkdtempSync(path.join(os.tmpdir(), 'edgewise-ui-'));
+const images = path.resolve(process.env.EDGEWISE_SCREENSHOTS || process.env.QINGDAN_SCREENSHOTS || path.join(root, 'qa'));
 fs.mkdirSync(images, { recursive: true });
 const errors = [], checks = [];
 let desktop, page;
 async function check(name, fn) { await fn(); checks.push(name); console.log('PASS', name); }
 async function start() {
-  const env = { ...process.env, QINGDAN_TEST_DATA: data }; delete env.ELECTRON_RUN_AS_NODE;
+  const env = { ...process.env, EDGEWISE_TEST_DATA: data }; delete env.ELECTRON_RUN_AS_NODE;
   const binary = process.env.ELECTRON_BINARY || require('electron');
   const launchArgs = process.platform === 'linux' && process.getuid && process.getuid() === 0 ? ['--no-sandbox', root] : [root];
   desktop = await electron.launch({ executablePath: binary, args: launchArgs, env, timeout: 60000 });
   page = await desktop.firstWindow();
   page.on('pageerror', e => errors.push(e.message));
-  await page.waitForFunction(() => window.qingdan && document.querySelector('#todayDate').textContent.length > 0);
+  await page.waitForFunction(() => window.edgewise && document.querySelector('#todayDate').textContent.length > 0);
   await page.evaluate(() => document.fonts.ready);
   // Keep baseline interaction checks stable; automatic tucking has its own native-focus check.
   await action({ type: 'settings', settings: { autoTuck: false } });
 }
-async function state() { return (await page.evaluate(() => window.qingdan.read())).state; }
-async function action(a) { const r = await page.evaluate(a => window.qingdan.action(a), a); if (r.error) throw new Error(r.error); return r; }
+async function state() { return (await page.evaluate(() => window.edgewise.read())).state; }
+async function action(a) { const r = await page.evaluate(a => window.edgewise.action(a), a); if (r.error) throw new Error(r.error); return r; }
 async function count(n) { await page.waitForFunction(n => document.querySelector('#countAll').textContent === String(n), n); }
 async function shot(name) { await page.screenshot({ path: path.join(images, name + '.png') }); }
 
@@ -115,21 +115,21 @@ async function main() {
     await page.locator('#settingsButton').click(); await page.locator('button[data-theme=paper]').click(); await page.locator('#warnDays').selectOption('3'); await page.locator('#closeSettings').click();
   });
   await check('ghost click-through mode toggles cleanly, blocks open dialogs, and exits via Escape or IPC', async () => {
-    const info = await page.evaluate(() => window.qingdan.read());
+    const info = await page.evaluate(() => window.edgewise.read());
     if (info.ghostShortcutAvailable || info.shortcutAvailable || info.trayAvailable) {
-      const on = await page.evaluate(() => window.qingdan.command('ghost', true));
+      const on = await page.evaluate(() => window.edgewise.command('ghost', true));
       assert.equal(on.ghost, true, JSON.stringify(on));
       await page.waitForFunction(() => !document.querySelector('#ghostBanner').hidden);
       await page.keyboard.press('Escape');
       await page.waitForFunction(() => document.querySelector('#ghostBanner').hidden);
-      assert.equal((await page.evaluate(() => window.qingdan.read())).ghost, false);
+      assert.equal((await page.evaluate(() => window.edgewise.read())).ghost, false);
     } else {
-      const refused = await page.evaluate(() => window.qingdan.command('ghost', true));
+      const refused = await page.evaluate(() => window.edgewise.command('ghost', true));
       assert.match(refused.error || '', /exit safely/i);
     }
     // Opening a modal dialog must refuse Ghost mode so the banner is never obscured.
     await page.locator('#detailAdd').click();
-    const blocked = await page.evaluate(() => window.qingdan.command('ghost', true));
+    const blocked = await page.evaluate(() => window.edgewise.command('ghost', true));
     assert.match(blocked.error || '', /Close open dialogs/i);
     await page.locator('.close-editor').click();
   });
@@ -145,12 +145,12 @@ async function main() {
     assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds().height), height);
     await page.getByRole('button', { name: 'Focus: Submit camera-ready PDF', exact: true }).click();
     await page.waitForFunction(() => !document.querySelector('#focusControls').hidden);
-    assert.equal((await page.evaluate(() => window.qingdan.read())).focusActive, true);
+    assert.equal((await page.evaluate(() => window.edgewise.read())).focusActive, true);
     await page.locator('#focusToggle').click();
     await page.locator('#focusToggle').click();
     await page.locator('#focusExit').click();
     await page.waitForFunction(() => document.querySelector('#compactView').hidden);
-    assert.equal((await page.evaluate(() => window.qingdan.read())).focusActive, false);
+    assert.equal((await page.evaluate(() => window.edgewise.read())).focusActive, false);
   });
   await check('restart restores tasks, local DDL time, and settings', async () => {
     const before = await state(); await desktop.close(); await start(); const after = await state(); assert.deepEqual(after.tasks, before.tasks); assert.deepEqual(after.settings, before.settings);
@@ -229,21 +229,21 @@ async function main() {
     await page.locator('#detailAdd').click(); await page.locator('#taskTitle').fill('Do not lose this draft');
     await desktop.evaluate(({ BrowserWindow }) => { globalThis.testFocusWindow = new BrowserWindow({ width: 150, height: 150, show: true }); globalThis.testFocusWindow.focus(); });
     await desktop.evaluate(() => new Promise(resolve => setTimeout(resolve, 1200)));
-    assert.equal((await page.evaluate(() => window.qingdan.read())).tucked, false); assert.equal(await page.locator('#taskTitle').inputValue(), 'Do not lose this draft');
+    assert.equal((await page.evaluate(() => window.edgewise.read())).tucked, false); assert.equal(await page.locator('#taskTitle').inputValue(), 'Do not lose this draft');
     await desktop.evaluate(({ BrowserWindow }) => { globalThis.testFocusWindow.destroy(); BrowserWindow.getAllWindows()[0].focus(); }); await page.locator('.close-editor').click();
     await action({ type: 'settings', settings: { autoTuck: false } });
   });
   await check('temporary hide returns as a tab and manual recall cancels the timer', async () => {
-    await desktop.evaluate(() => { globalThis.qingdanOriginalTimeout = setTimeout; globalThis.setTimeout = (fn, delay, ...args) => globalThis.qingdanOriginalTimeout(fn, delay === 15 * 60000 ? 400 : delay, ...args); });
+    await desktop.evaluate(() => { globalThis.edgewiseOriginalTimeout = setTimeout; globalThis.setTimeout = (fn, delay, ...args) => globalThis.edgewiseOriginalTimeout(fn, delay === 15 * 60000 ? 400 : delay, ...args); });
     try {
       await page.locator('#quietButton').click(); assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible()), false);
       await page.waitForFunction(() => !document.querySelector('#edgeView').hidden, {}, { timeout: 6000 });
       assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible()), true); await page.locator('#edgeOpen').click();
       await page.locator('#quietButton').click(); await desktop.evaluate(({ app }) => app.emit('activate'));
       await desktop.evaluate(() => new Promise(resolve => setTimeout(resolve, 600)));
-      assert.equal((await page.evaluate(() => window.qingdan.read())).tucked, false);
+      assert.equal((await page.evaluate(() => window.edgewise.read())).tucked, false);
       assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible()), true);
-    } finally { await desktop.evaluate(() => { globalThis.setTimeout = globalThis.qingdanOriginalTimeout; delete globalThis.qingdanOriginalTimeout; }); }
+    } finally { await desktop.evaluate(() => { globalThis.setTimeout = globalThis.edgewiseOriginalTimeout; delete globalThis.edgewiseOriginalTimeout; }); }
   });
   await check('final layout remains usable at minimum size with a full shelf', async () => {
     await page.evaluate(() => document.querySelector('#toast').hidden = true);

@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-const M = window.QingdanModel;
+const M = window.EdgewiseModel;
 const icons = {
   pin: '<path d="m9 3 6 0-1 6 3 4H7l3-4-1-6ZM12 13v7"/>',
   collapse: '<path d="M5 8h14M8 16l4-4 4 4"/>', expand: '<path d="M5 6h14M8 12l4 4 4-4"/>',
@@ -64,12 +64,12 @@ function errorMessage(error) {
 async function act(action, message) {
   if (busy) return null;
   busy = true; $('saveStatus').className = 'saving'; $('saveStatus').textContent = 'Saving…';
-  try { const data = accept(await window.qingdan.action(action)); if (message) toast(message, action.type !== 'settings'); return data; }
+  try { const data = accept(await window.edgewise.action(action)); if (message) toast(message, action.type !== 'settings'); return data; }
   catch (error) { errorMessage(error); return null; }
   finally { busy = false; }
 }
 async function command(name, value) {
-  try { return accept(await window.qingdan.command(name, value)); } catch (error) { errorMessage(error); return null; }
+  try { return accept(await window.edgewise.command(name, value)); } catch (error) { errorMessage(error); return null; }
 }
 function toast(text, undo = false, error = false) {
   clearTimeout(toastTimer); $('toastText').textContent = text; $('toastUndo').hidden = !undo; $('toast').classList.toggle('error', error); $('toast').hidden = false;
@@ -353,7 +353,7 @@ function renderList(now = Date.now()) {
     let title = 'Room for what matters.', description = 'Try typing "Submit draft fri 18:00 !"\nor pin a note to the top shelf.';
     if (query) { title = 'No matching tasks.'; description = 'Try another word — both titles and notes are searched.'; }
     else if (tab === 'done') { title = 'Completed tasks land here.'; description = 'Check off any item to keep a quiet record of progress.'; }
-    else if (tab === 'ddl') { title = 'No active deadlines.'; description = 'Add a deadline and Qingdan will shift colors as it approaches.'; }
+    else if (tab === 'ddl') { title = 'No active deadlines.'; description = 'Add a deadline and Edgewise will shift colors as it approaches.'; }
     else if (tab === 'repeat') { title = 'No routines yet.'; description = 'Try "Standup weekdays 09:00" or "Weekly review every fri 17:00".'; }
     else if (tab === 'sticky') { title = 'No pinned notes yet.'; description = 'Keep principles, checklists, or reminders visible without deadlines.'; }
     $('emptyTitle').textContent = title;
@@ -593,13 +593,13 @@ document.addEventListener('keydown', event => {
     $('toast').hidden = true;
   }
 });
-if (!window.qingdan) {
-  $('emptyState').hidden = false; $('emptyTitle').textContent = 'Launch from Qingdan Desktop'; $('emptyDescription').textContent = 'This UI runs inside the desktop app. Launch Qingdan.exe to use it.'; $('emptyAdd').hidden = true;
+if (!window.edgewise) {
+  $('emptyState').hidden = false; $('emptyTitle').textContent = 'Launch from Edgewise Desktop'; $('emptyDescription').textContent = 'This UI runs inside the desktop app. Launch Edgewise.exe to use it.'; $('emptyAdd').hidden = true;
 } else {
-  window.qingdan.read().then(accept).catch(errorMessage);
-  window.qingdan.onState(data => { try { accept(data); } catch (error) { errorMessage(error); } });
-  window.qingdan.onError(message => errorMessage(new Error(message)));
-  window.qingdan.onFocusAdd(() => { if (!$('editorDialog').open && !$('settingsDialog').open) $('quickInput').focus(); });
+  window.edgewise.read().then(accept).catch(errorMessage);
+  window.edgewise.onState(data => { try { accept(data); } catch (error) { errorMessage(error); } });
+  window.edgewise.onError(message => errorMessage(new Error(message)));
+  window.edgewise.onFocusAdd(() => { if (!$('editorDialog').open && !$('settingsDialog').open) $('quickInput').focus(); });
   // A deadline can change category while the window stays open or after sleep.
   setInterval(() => { if (state && !document.hidden) { render(); if ($('editorDialog').open) previewDate(); } }, 15000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && state) render(); });

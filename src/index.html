@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>Qingdan</title>
+  <title>Edgewise</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="app">
-    <div id="edgeView" class="edge-view" hidden><div class="edge-grip" title="Drag edge tab"></div><button id="edgeOpen" aria-label="Expand Qingdan"><img src="../assets/mark.svg" alt=""><span class="edge-name">QINGDAN</span><span id="edgeCount">0</span><span data-icon="arrow"></span></button></div>
+    <div id="edgeView" class="edge-view" hidden><div class="edge-grip" title="Drag edge tab"></div><button id="edgeOpen" aria-label="Expand Edgewise"><img src="../assets/mark.svg" alt=""><span class="edge-name">EDGEWISE</span><span id="edgeCount">0</span><span data-icon="arrow"></span></button></div>
     <header id="titlebar" class="titlebar">
-      <div class="brand"><img src="../assets/mark.svg" alt=""><span>Qingdan</span><span id="stealthPill" class="stealth-pill" hidden>PRIVATE</span></div>
+      <div class="brand"><img src="../assets/mark.svg" alt=""><span>Edgewise</span><span id="stealthPill" class="stealth-pill" hidden>PRIVATE</span></div>
       <div class="window-controls">
         <button id="stealthButton" class="icon-button" aria-label="Hide from screen share" title="Hide from screen share (Zoom / Teams / OBS)" data-icon="eye-off"></button>
         <button id="ghostButton" class="icon-button" aria-label="Ghost click-through mode" title="Ghost click-through · Ctrl+Alt+G" data-icon="ghost"></button>
@@ -69,7 +69,7 @@
 
   <dialog id="editorDialog" class="sheet editor-sheet">
     <form id="editorForm">
-      <header class="sheet-header"><div><div class="eyebrow">Qingdan</div><h2 id="editorHeading">New Task</h2></div><button type="button" class="icon-button close-editor" aria-label="Close editor" data-icon="x"></button></header>
+      <header class="sheet-header"><div><div class="eyebrow">Edgewise</div><h2 id="editorHeading">New Task</h2></div><button type="button" class="icon-button close-editor" aria-label="Close editor" data-icon="x"></button></header>
       <div class="sheet-body">
         <div class="kind-picker" role="group" aria-label="Record type"><button type="button" id="kindTask" class="selected" data-kind="task"><span data-icon="check-circle"></span>Task / DDL</button><button type="button" id="kindSticky" data-kind="sticky"><span data-icon="pin"></span>Pinned Note</button></div>
         <label class="field-label" for="taskTitle">Title</label>
@@ -98,7 +98,7 @@
       <section class="settings-section"><h3>Deadline Colors</h3><div class="setting-line"><label for="warnDays"><i class="soon-dot"></i>Approaching</label><select id="warnDays"><option value="1">1 day before</option><option value="3">3 days before</option><option value="7">7 days before</option><option value="14">14 days before</option></select></div><div class="setting-line"><label for="urgentHours"><i class="urgent-dot"></i>Urgent</label><select id="urgentHours"><option value="6">6 hours before</option><option value="12">12 hours before</option><option value="24">24 hours before</option></select></div><div class="setting-line"><span><i class="overdue-dot"></i>Overdue</span><span class="muted">Turns red automatically</span></div><div class="setting-line"><label for="reminders">Desktop alerts <small>Once per phase for urgent / overdue; on time for routines</small></label><label class="switch"><input id="reminders" type="checkbox"><span></span></label></div></section>
       <section class="settings-section"><h3>Window &amp; Privacy</h3><div class="setting-line"><label for="autoTuck">Auto-tuck to edge <small>Shrinks to a 46px edge tab after switching away</small></label><label class="switch"><input id="autoTuck" type="checkbox"><span></span></label></div><div class="setting-line"><label for="alwaysOnTop">Always on top</label><label class="switch"><input id="alwaysOnTop" type="checkbox"><span></span></label></div><div class="setting-line"><label for="hideFromCapture">Hide from screen share <small>Invisible in Zoom, Teams, Discord, and OBS captures</small></label><label class="switch"><input id="hideFromCapture" type="checkbox"><span></span></label></div><div class="setting-line"><label for="launchOnStartup">Launch at Windows login <small>Starts tucked to edge; keep in a permanent folder</small></label><label class="switch"><input id="launchOnStartup" type="checkbox"><span></span></label></div><p id="shortcutHint" class="settings-hint">Ctrl+Alt+Q toggle · Ctrl+Alt+G ghost click-through · Ctrl+N new task</p></section>
       <section class="settings-section"><h3>Data &amp; Backup</h3><p class="settings-hint">Saved locally on this computer with atomic writes and 20 daily snapshots. No account or cloud sync.</p><div class="backup-actions"><button id="exportButton" class="secondary-button"><span data-icon="export"></span>Export JSON</button><button id="importButton" class="secondary-button"><span data-icon="import"></span>Restore JSON</button></div><button id="exportMdButton" class="text-button">Export tasks as Markdown (.md) <span data-icon="arrow"></span></button><button id="folderButton" class="text-button">Open data folder <span data-icon="arrow"></span></button><button id="clearButton" class="text-button muted">Clear completed records</button></section>
-      <div class="about"><img src="../assets/mark.svg" alt=""><div><strong>Qingdan 1.2</strong><span>Ambient deadline awareness for Windows.</span></div></div><button id="quitButton" class="text-button muted quit-button">Quit Qingdan</button>
+      <div class="about"><img src="../assets/mark.svg" alt=""><div><strong>Edgewise 1.3</strong><span>Ambient deadline bar for Windows.</span></div></div><button id="quitButton" class="text-button muted quit-button">Quit Edgewise</button>
     </div>
   </dialog>
   <script src="model.js"></script>

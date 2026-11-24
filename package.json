@@ -1,8 +1,8 @@
 {
-  "name": "qingdan",
-  "productName": "Qingdan",
-  "version": "1.2.0",
-  "description": "Ambient deadline awareness for Windows — edge-docked floating task bar with offline NLP quick capture, screen-share stealth, and ghost click-through mode.",
+  "name": "edgewise",
+  "productName": "Edgewise",
+  "version": "1.3.0",
+  "description": "Ambient deadline bar for Windows — edge-docked floating task rail with offline NLP quick capture, screen-share stealth, and ghost click-through mode.",
   "main": "src/main.js",
   "private": true,
   "license": "MIT",
@@ -19,11 +19,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/KennyMcSimpson/qingdan.git"
+    "url": "https://github.com/KennyMcSimpson/edgewise.git"
   },
-  "homepage": "https://github.com/KennyMcSimpson/qingdan",
+  "homepage": "https://github.com/KennyMcSimpson/edgewise",
   "bugs": {
-    "url": "https://github.com/KennyMcSimpson/qingdan/issues"
+    "url": "https://github.com/KennyMcSimpson/edgewise/issues"
   },
   "engines": {
     "node": ">=24"

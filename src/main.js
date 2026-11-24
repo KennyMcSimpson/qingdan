@@ -7,10 +7,11 @@ const Model = require('./model');
 const Layout = require('./layout');
 const { Store } = require('./store');
 
-app.setName('Qingdan');
-if (process.env.QINGDAN_TEST_DATA) app.setPath('userData', process.env.QINGDAN_TEST_DATA);
-else app.setPath('userData', path.join(app.getPath('appData'), 'Qingdan'));
-app.setAppUserModelId('com.qingdan.desktop');
+app.setName('Edgewise');
+const TEST_DATA_DIR = process.env.EDGEWISE_TEST_DATA || process.env.QINGDAN_TEST_DATA || '';
+if (TEST_DATA_DIR) app.setPath('userData', TEST_DATA_DIR);
+else app.setPath('userData', path.join(app.getPath('appData'), 'Edgewise'));
+app.setAppUserModelId('com.edgewise.desktop');
 // A modest, static utility: software rendering also avoids driver-specific blank windows.
 app.disableHardwareAcceleration();
 let win, tray, store, state, quitting = false, collapsed = false, tucked = false, ghost = false, focusActive = false, normalHeight = 660;
@@ -197,9 +198,9 @@ function updateSettings(patch) {
 function updateTray() {
   if (!tray || tray.isDestroyed()) return;
   const count = state.tasks.filter(t => !t.completedAt && t.kind === 'task').length;
-  tray.setToolTip('Qingdan · ' + count + (count === 1 ? ' task' : ' tasks'));
+  tray.setToolTip('Edgewise · ' + count + (count === 1 ? ' task' : ' tasks'));
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Open Qingdan', click: () => show() },
+    { label: 'Open Edgewise', click: () => show() },
     { label: 'Quick Add Task', click: () => show(true) },
     { type: 'separator' },
     { label: 'Always on Top', type: 'checkbox', checked: state.settings.alwaysOnTop, click: item => { try { updateSettings({ alwaysOnTop: item.checked }); } catch (e) { report(e); } } },
@@ -209,7 +210,7 @@ function updateTray() {
     { label: 'Hide for 15 Minutes', click: () => away(15) },
     { label: 'Launch at Login', type: 'checkbox', checked: state.settings.launchOnStartup, enabled: process.platform === 'win32', click: item => { try { updateSettings({ launchOnStartup: item.checked }); } catch (e) { report(e); } } },
     { type: 'separator' },
-    { label: 'Quit Qingdan', click: () => app.quit() }
+    { label: 'Quit Edgewise', click: () => app.quit() }
   ]));
 }
 function notifyDue() {
@@ -222,25 +223,25 @@ function notifyDue() {
   for (const x of candidates) next.notices[x.task.id] = x.key;
   try {
     const content = candidates.slice(0, 3).map(x => x.task.title.slice(0, 50) + ' · ' + (x.task.repeat ? 'Time for routine' : x.deadline.text)).join('\n');
-    if (process.platform === 'win32') tray.displayBalloon({ title: 'Qingdan · ' + candidates.length + (candidates.length === 1 ? ' item needs attention' : ' items need attention'), content, icon: nativeImage.createFromPath(asset('icon.png')), respectQuietTime: true });
-    else if (!process.env.QINGDAN_TEST_DATA) { const { Notification } = require('electron'); if (Notification.isSupported()) { const n = new Notification({ title: 'Qingdan · Deadline Reminder', body: content }); n.on('click', () => show()); n.show(); } }
+    if (process.platform === 'win32') tray.displayBalloon({ title: 'Edgewise · ' + candidates.length + (candidates.length === 1 ? ' item needs attention' : ' items need attention'), content, icon: nativeImage.createFromPath(asset('icon.png')), respectQuietTime: true });
+    else if (!TEST_DATA_DIR) { const { Notification } = require('electron'); if (Notification.isSupported()) { const n = new Notification({ title: 'Edgewise · Deadline Reminder', body: content }); n.on('click', () => show()); n.show(); } }
     commit(next);
   } catch (e) { report(e); }
 }
 async function exportBackup() {
-  const result = await dialog.showSaveDialog(win, { title: 'Export Qingdan Backup', defaultPath: 'qingdan-backup-' + new Date().toISOString().slice(0, 10) + '.json', filters: [{ name: 'Qingdan Backup', extensions: ['json'] }] });
+  const result = await dialog.showSaveDialog(win, { title: 'Export Edgewise Backup', defaultPath: 'edgewise-backup-' + new Date().toISOString().slice(0, 10) + '.json', filters: [{ name: 'Edgewise Backup', extensions: ['json'] }] });
   if (result.canceled || !result.filePath) return { canceled: true };
-  fs.writeFileSync(result.filePath, JSON.stringify({ ...state, format: 'QingdanBackup', exportedAt: new Date().toISOString(), window: {}, notices: {} }, null, 2), 'utf8');
+  fs.writeFileSync(result.filePath, JSON.stringify({ ...state, format: 'EdgewiseBackup', exportedAt: new Date().toISOString(), window: {}, notices: {} }, null, 2), 'utf8');
   return { ok: true };
 }
 async function exportMarkdown() {
-  const result = await dialog.showSaveDialog(win, { title: 'Export Tasks as Markdown', defaultPath: 'qingdan-tasks-' + new Date().toISOString().slice(0, 10) + '.md', filters: [{ name: 'Markdown', extensions: ['md'] }] });
+  const result = await dialog.showSaveDialog(win, { title: 'Export Tasks as Markdown', defaultPath: 'edgewise-tasks-' + new Date().toISOString().slice(0, 10) + '.md', filters: [{ name: 'Markdown', extensions: ['md'] }] });
   if (result.canceled || !result.filePath) return { canceled: true };
   fs.writeFileSync(result.filePath, Model.toMarkdown(state), 'utf8');
   return { ok: true };
 }
 async function importBackup() {
-  const result = await dialog.showOpenDialog(win, { title: 'Select Qingdan Backup', properties: ['openFile'], filters: [{ name: 'Qingdan Backup', extensions: ['json'] }] });
+  const result = await dialog.showOpenDialog(win, { title: 'Select Edgewise or Qingdan Backup', properties: ['openFile'], filters: [{ name: 'Edgewise / Qingdan Backup', extensions: ['json'] }] });
   if (result.canceled) return { canceled: true };
   const file = result.filePaths[0];
   if (fs.statSync(file).size > 32 * 1024 * 1024) throw new Error('Backup file is too large. Choose a file under 32 MB.');
@@ -283,10 +284,10 @@ function bindIPC() {
       const title = typeof value === 'string' && value.trim() ? value.trim().slice(0, 80) : 'Focus session finished.';
       try {
         if (tray && process.platform === 'win32') {
-          tray.displayBalloon({ title: 'Qingdan · Focus Complete', content: title, icon: nativeImage.createFromPath(asset('icon.png')), respectQuietTime: true });
-        } else if (!process.env.QINGDAN_TEST_DATA) {
+          tray.displayBalloon({ title: 'Edgewise · Focus Complete', content: title, icon: nativeImage.createFromPath(asset('icon.png')), respectQuietTime: true });
+        } else if (!TEST_DATA_DIR) {
           const { Notification } = require('electron');
-          if (Notification.isSupported()) { const n = new Notification({ title: 'Qingdan · Focus Complete', body: title }); n.on('click', () => show()); n.show(); }
+          if (Notification.isSupported()) { const n = new Notification({ title: 'Edgewise · Focus Complete', body: title }); n.on('click', () => show()); n.show(); }
         }
       } catch (e) { log(e); }
       return { ok: true };
@@ -324,7 +325,7 @@ function createWindow() {
   normalBounds = { ...bounds, height: normalHeight }; edgeSide = state.window.edgeSide || 'right';
   win = new BrowserWindow({
     ...bounds, minWidth: 340, minHeight: collapsed ? 132 : 420, maxWidth: 700, maxHeight: collapsed ? 132 : 1100,
-    title: 'Qingdan', frame: false, resizable: true, maximizable: false, fullscreenable: false, show: false,
+    title: 'Edgewise', frame: false, resizable: true, maximizable: false, fullscreenable: false, show: false,
     alwaysOnTop: state.settings.alwaysOnTop, backgroundColor: state.settings.theme === 'dark' ? '#242823' : '#f8f7f2',
     icon: asset('icon.png'), autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false }
@@ -348,13 +349,24 @@ function createWindow() {
 }
 // The Linux test harness cannot create a Unix-domain singleton socket.
 // Windows production always uses the real single-instance lock.
-const hasInstanceLock = process.platform !== 'win32' && !!process.env.QINGDAN_TEST_DATA ? true : app.requestSingleInstanceLock();
+const hasInstanceLock = process.platform !== 'win32' && !!TEST_DATA_DIR ? true : app.requestSingleInstanceLock();
 if (!hasInstanceLock) app.quit();
 else {
   app.on('second-instance', () => show());
   app.whenReady().then(() => {
     try {
-      store = new Store(app.getPath('userData')); state = store.load();
+      const dataDir = app.getPath('userData');
+      let migratedFromQingdan = false;
+      if (!TEST_DATA_DIR) {
+        try {
+          const legacyDir = path.join(app.getPath('appData'), 'Qingdan');
+          migratedFromQingdan = Store.migrateLegacy(legacyDir, dataDir).migrated;
+        } catch (error) { log(error); }
+      }
+      store = new Store(dataDir); state = store.load();
+      if (migratedFromQingdan && !store.notice) {
+        store.notice = 'Imported your tasks and settings from Qingdan. Your previous Qingdan folder was left intact.';
+      }
       state = Model.rollRecurring(state); state = store.write(state);
       if (process.platform === 'win32') {
         state.settings.launchOnStartup = app.getLoginItemSettings({ path: process.execPath, args: ['--startup'] }).openAtLogin;
@@ -378,9 +390,9 @@ else {
       };
       screen.on('display-removed', recoverDisplay); screen.on('display-metrics-changed', recoverDisplay);
     } catch (error) {
-      fatal = true; log(error); dialog.showErrorBox('Qingdan could not start', error.message); app.quit();
+      fatal = true; log(error); dialog.showErrorBox('Edgewise could not start', error.message); app.quit();
     }
-  }).catch(error => { dialog.showErrorBox('Qingdan failed to start', String(error)); app.quit(); });
+  }).catch(error => { dialog.showErrorBox('Edgewise failed to start', String(error)); app.quit(); });
   app.on('before-quit', () => {
     if (quitting) return;
     clearTimeout(boundsTimer); clearTimeout(tuckTimer); clearTimeout(awayTimer); clearInterval(reminderTimer);

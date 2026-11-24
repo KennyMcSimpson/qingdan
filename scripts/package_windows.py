@@ -29,7 +29,7 @@ actual = hashlib.sha256(runtime.read_bytes()).hexdigest()
 if expected != actual:
     raise SystemExit('Runtime SHA256 mismatch. Refusing to package.')
 out = Path(args.out).resolve()
-folder = out / 'Qingdan-Windows-x64'
+folder = out / 'Edgewise-Windows-x64'
 if folder.exists():
     shutil.rmtree(folder)
 folder.mkdir(parents=True)
@@ -45,7 +45,7 @@ if default_app.exists():
 from PIL import Image
 icon = ROOT / 'assets' / 'icon.ico'
 Image.open(ROOT / 'assets' / 'icon.png').save(icon, sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])
-subprocess.run(['node', str(ROOT / 'scripts' / 'brand_exe.mjs'), str(folder / 'electron.exe'), str(folder / 'Qingdan.exe'), str(icon)], check=True)
+subprocess.run(['node', str(ROOT / 'scripts' / 'brand_exe.mjs'), str(folder / 'electron.exe'), str(folder / 'Edgewise.exe'), str(icon)], check=True)
 (folder / 'electron.exe').unlink()
 appdir = folder / 'resources' / 'app'
 appdir.mkdir(parents=True)
@@ -57,9 +57,9 @@ for name in ['package.json', 'package-lock.json', 'README.md', 'CONTRIBUTING.md'
 for name in ['QUICKSTART.txt', 'VALIDATION.md']:
     if (ROOT / name).exists():
         shutil.copy2(ROOT / name, folder / name)
-shutil.copy2(ROOT / 'LICENSE', folder / 'LICENSE-Qingdan.txt')
-with (folder / 'Launch-Qingdan.cmd').open('w', encoding='utf-8', newline='') as f:
-    f.write('@echo off\r\ncd /d "%~dp0"\r\nstart "" "%~dp0Qingdan.exe"\r\n')
+shutil.copy2(ROOT / 'LICENSE', folder / 'LICENSE-Edgewise.txt')
+with (folder / 'Launch-Edgewise.cmd').open('w', encoding='utf-8', newline='') as f:
+    f.write('@echo off\r\ncd /d "%~dp0"\r\nstart "" "%~dp0Edgewise.exe"\r\n')
 for locale in (folder / 'locales').glob('*.pak'):
     if locale.name not in ['en-US.pak','en-GB.pak']:
         locale.unlink()
@@ -69,7 +69,7 @@ for file in sorted(folder.rglob('*')):
         manifest[file.relative_to(folder).as_posix()] = hashlib.sha256(file.read_bytes()).hexdigest()
 (folder / 'SHA256-MANIFEST.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False),encoding='utf-8')
 app_version = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
-archive = out / f'Qingdan-{app_version}-windows-x64.zip'
+archive = out / f'Edgewise-{app_version}-windows-x64.zip'
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
     for file in sorted(folder.rglob('*')):
         if file.is_file():

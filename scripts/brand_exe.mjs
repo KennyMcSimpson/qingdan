@@ -2,11 +2,11 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-const require = createRequire(process.env.QINGDAN_BUILD_PACKAGE || import.meta.url);
+const require = createRequire(process.env.EDGEWISE_BUILD_PACKAGE || process.env.QINGDAN_BUILD_PACKAGE || import.meta.url);
 const PE = await import(pathToFileURL(require.resolve('pe-library')).href);
 const ResEdit = await import(pathToFileURL(require.resolve('resedit')).href);
 const [source, destination, icon] = process.argv.slice(2);
-if (!source || !destination || !icon) throw new Error('Arguments: electron.exe Qingdan.exe icon.ico');
+if (!source || !destination || !icon) throw new Error('Arguments: electron.exe Edgewise.exe icon.ico');
 const exe = PE.NtExecutable.from(fs.readFileSync(source),{ignoreCert:true});
 const res = PE.NtExecutableResource.from(exe);
 const file = ResEdit.Data.IconFile.from(fs.readFileSync(icon));
@@ -16,7 +16,7 @@ const versions = ResEdit.Resource.VersionInfo.fromEntries(res.entries);
 const version = JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8')).version.split('.').map(Number);
 for (const v of versions) {
   v.setFileVersion(...version,0,1033); v.setProductVersion(...version,0,1033);
-  v.setStringValues({lang:1033,codepage:1200},{ FileDescription:'Qingdan · Ambient Deadline Bar', ProductName:'Qingdan', CompanyName:'Qingdan', InternalName:'Qingdan', OriginalFilename:'Qingdan.exe', LegalCopyright:'Copyright (c) 2026 Qingdan contributors. MIT License.' });
+  v.setStringValues({lang:1033,codepage:1200},{ FileDescription:'Edgewise · Ambient Deadline Bar', ProductName:'Edgewise', CompanyName:'Edgewise', InternalName:'Edgewise', OriginalFilename:'Edgewise.exe', LegalCopyright:'Copyright (c) 2026 Edgewise contributors. MIT License.' });
   v.outputToResourceEntries(res.entries);
 }
 res.outputResource(exe);

@@ -8,7 +8,7 @@ const M = require('../src/model');
 const { Store } = require('../src/store');
 const now = Date.parse('2026-09-26T16:00:00Z');
 const make = (ms, extra = {}) => M.task({ id: 'test-1', title: 'Submit paper', dueAt: ms === null ? null : new Date(now + ms).toISOString(), ...extra }, now);
-function temp(t) { const p = fs.mkdtempSync(path.join(os.tmpdir(), 'qingdan-test-')); t.after(() => fs.rmSync(p, { recursive: true, force: true })); return p; }
+function temp(t) { const p = fs.mkdtempSync(path.join(os.tmpdir(), 'edgewise-test-')); t.after(() => fs.rmSync(p, { recursive: true, force: true })); return p; }
 
 test('deadline colors cross precise warning, urgent, and overdue boundaries', () => {
   for (const [ms, level] of [[4 * M.DAY, 'future'], [3 * M.DAY + 1, 'future'], [3 * M.DAY, 'soon'], [M.DAY + 1, 'soon'], [M.DAY, 'urgent'], [1, 'urgent'], [0, 'overdue'], [-M.DAY, 'overdue']]) assert.equal(M.deadline(make(ms), M.defaults, now).level, level);
@@ -319,7 +319,7 @@ test('toMarkdown exports clean grouped Markdown checklist', () => {
     ]
   };
   const md = M.toMarkdown(s, ref);
-  assert.match(md, /^# Qingdan Tasks/m);
+  assert.match(md, /^# Edgewise Tasks/m);
   assert.match(md, /## Pinned/);
   assert.match(md, /- \[ \] Always verify hashes ! @pinned/);
   assert.match(md, /## Due soon/);
@@ -327,6 +327,32 @@ test('toMarkdown exports clean grouped Markdown checklist', () => {
   assert.match(md, /  > Check table 2/);
   assert.match(md, /## Completed/);
   assert.match(md, /- \[x\] Finished item/);
+});
+test('Store.migrateLegacy non-destructively copies legacy Qingdan data without overwriting existing Edgewise data', t => {
+  const root = temp(t);
+  const legacyDir = path.join(root, 'Qingdan');
+  const targetDir = path.join(root, 'Edgewise');
+  fs.mkdirSync(path.join(legacyDir, 'backups'), { recursive: true });
+  const legacyState = { ...M.defaultState(), tasks: [make(M.HOUR, { title: 'Legacy paper deadline' })] };
+  fs.writeFileSync(path.join(legacyDir, 'qingdan.json'), JSON.stringify(legacyState, null, 2), 'utf8');
+  fs.writeFileSync(path.join(legacyDir, 'qingdan.json.bak'), JSON.stringify(legacyState, null, 2), 'utf8');
+  fs.writeFileSync(path.join(legacyDir, 'backups', '2026-11-23-daily.json'), JSON.stringify(legacyState, null, 2), 'utf8');
+
+  const first = Store.migrateLegacy(legacyDir, targetDir);
+  assert.equal(first.migrated, true);
+  assert.equal(fs.existsSync(path.join(legacyDir, 'qingdan.json')), true, 'Legacy file must stay intact');
+  assert.equal(fs.existsSync(path.join(targetDir, 'backups', '2026-11-23-daily.json')), true);
+
+  const store = new Store(targetDir);
+  const loaded = store.load();
+  assert.equal(loaded.tasks.length, 1);
+  assert.equal(loaded.tasks[0].title, 'Legacy paper deadline');
+
+  // Subsequent runs must never overwrite newer Edgewise data.
+  store.write({ ...loaded, tasks: [make(M.HOUR, { title: 'Updated Edgewise task' })] });
+  const second = Store.migrateLegacy(legacyDir, targetDir);
+  assert.equal(second.migrated, false);
+  assert.equal(store.load().tasks[0].title, 'Updated Edgewise task');
 });
 
 const L = require('../src/layout');

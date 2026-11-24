@@ -82,4 +82,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(node -p "require('./package.json').version")
-          gh release create "v$version" release/*.zip release/SHA256SUMS.txt --target "$GITHUB_SHA" --title "Qingdan $version" --notes-file "docs/releases/$version.md"
+          gh release create "v$version" release/*.zip release/SHA256SUMS.txt --target "$GITHUB_SHA" --title "Edgewise $version" --notes-file "docs/releases/$version.md"
