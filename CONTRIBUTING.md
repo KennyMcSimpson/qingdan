@@ -1,43 +1,35 @@
-# Contributing / 参与改进
+# Contributing
 
-## 中文
+Real-world Windows device feedback and small, focused improvements are welcome. Open an issue to discuss the problem before starting a large feature.
 
-欢迎 Windows 实际使用反馈和小而明确的改进。较大的功能建议先开 Issue，说明它解决什么问题。
+## Development & Testing
 
-使用 Node.js 24 和 npm：`npm ci` 安装依赖，`npm start` 启动，`npm test` 检查核心逻辑。`npm run test:ui` 启动真实 Electron 窗口，用临时清单测试，不读取正常用户数据；需要桌面会话，Linux 可以使用 Xvfb。可通过 `ELECTRON_BINARY` 指定运行文件，截图写入不提交的 `qa/`。
+Use Node.js 24 and npm: `npm ci` installs dependencies, `npm start` launches the app, and `npm test` checks core logic. `npm run test:ui` launches a real Electron window using temporary test data and never reads your normal user list. A desktop session is required (Linux can use Xvfb). Override `ELECTRON_BINARY` to specify a custom runtime path. Test screenshots are written to the ignored `qa/` directory.
 
-| 路径 | 职责 / Responsibility |
+| Path | Responsibility |
 | --- | --- |
-| `src/main.js` | 原生窗口、托盘、提醒、IPC / Native window, tray, reminders, IPC |
-| `src/model.js` | 截止分级、校验、状态变更 / Deadline and state logic |
-| `src/layout.js` | 窗口与贴边坐标 / Window and edge-tab geometry |
-| `src/store.js` | 保存、备份、恢复 / Persistence and recovery |
-| `src/renderer.js` | 清单与编辑器交互 / Renderer interactions |
-| `src/styles.css` | 主题和样式 / Themes and styles |
-| `assets/` | 原创图标与插画 / Original artwork |
-| `tests/` | 核心与窗口测试 / Core and UI tests |
-| `scripts/` | Windows 打包 / Windows packaging |
+| `src/main.js` | Native window, tray, reminders, IPC |
+| `src/model.js` | Deadline thresholds, validation, and state transitions |
+| `src/layout.js` | Window and edge-tab geometry |
+| `src/store.js` | Persistence, backup, and recovery |
+| `src/renderer.js` | Task list and editor interactions |
+| `src/styles.css` | Themes and styling |
+| `assets/` | Original icons and artwork |
+| `tests/` | Core and Electron window tests |
+| `scripts/` | Windows packaging |
 
-构建便携包需要 Python 3 与 Pillow。下载 `package.json` 中固定版本的官方 Electron Windows x64 ZIP，以及同一发布页的 `SHASUMS256.txt`，然后运行：
+## Building the Windows Portable Package
+
+Packaging requires Python 3 and Pillow. Download the official Windows x64 Electron ZIP matching the version pinned in `package.json` along with `SHASUMS256.txt` from the same release page, then run:
 
 ```sh
 python scripts/package_windows.py --runtime /path/to/electron-win32-x64.zip --checksums /path/to/SHASUMS256.txt --out release
 ```
 
-脚本先校验官方 SHA-256，再写入 EXE 图标和版本、收集资源及许可证，最后生成 ZIP 并检查 CRC。运行环境、个人清单、日志和压缩包不提交到源码仓库。
+The script verifies the official SHA-256 checksum first, then embeds the executable icon and version metadata, collects app assets and licenses, generates the ZIP archive, and runs a full CRC check. Keep runtimes, personal task lists, logs, and release archives out of Git.
 
-提交时说明问题、改动后的行为及验证方式；中英文文档保持一致，截图使用演示数据。时间、保存、迁移方面的改动需要能防止真实回归的测试。
+## Pull Requests & Releases
 
-`desktop.yml` 在 Windows / Linux 中执行真实 Electron 测试，上传截图与测试结果，再用校验过的官方运行包构建 Windows ZIP。只有 `main` 上以 `release:` 开头的提交且两套桌面检查均成功时，才会按 `package.json` 的版本创建 Release；需要对应的 `docs/releases/<version>.md`。普通提交只检查和构建。
+Pull requests should explain the problem, resulting behavior, and verification performed. Keep repository documentation aligned, and use sample data in screenshots. Changes to date handling, persistence, or data migration should include regression tests.
 
-## English
-
-Windows device feedback and focused improvements are welcome. Open an issue to discuss the problem before starting a large feature.
-
-Use Node.js 24 and npm: `npm ci` installs dependencies, `npm start` launches the app and `npm test` checks core logic. `npm run test:ui` uses a real Electron window and temporary data, never the normal user list. A desktop session is required; Linux can use Xvfb. Override `ELECTRON_BINARY` for a custom runtime path. Screenshots go to the ignored `qa/` directory.
-
-The table above describes the project layout. For packaging, install Python 3 and Pillow, then download the official Windows x64 Electron ZIP matching the pinned version and its `SHASUMS256.txt`. Run the command above with those file paths. It verifies the runtime checksum before branding the executable, collecting assets and licenses, and checking the completed archive. Keep runtimes, personal lists, logs and release ZIPs out of Git.
-
-Pull requests should explain the problem, resulting behavior and verification. Keep Chinese and English docs aligned; use sample data in screenshots. Date handling, persistence and migration changes should include tests for real regressions.
-
-`desktop.yml` runs native Electron checks on Windows and Linux, retains screenshots and the report, and builds a checksum-verified Windows ZIP. Publishing is restricted to successful `main` pushes whose commit message starts with `release:`. The version comes from `package.json`, with release notes in `docs/releases/<version>.md`. Regular pushes only check and build.
+`desktop.yml` runs native Electron checks on Windows and Linux, uploads screenshots and test reports, and builds a checksum-verified Windows ZIP. Publishing a GitHub Release is restricted to `main` pushes whose commit message starts with `release:` when both desktop checks succeed. The version comes from `package.json` and requires matching release notes in `docs/releases/<version>.md`. Regular pushes only run checks and builds.
